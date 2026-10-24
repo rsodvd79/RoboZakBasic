@@ -1,0 +1,219 @@
+[PICTURE]
+Robot=roki.bmp
+Zero=roki_zero.bmp
+[MOTOR0_PROPERTY]
+MotorNo= 0
+MotorGroup= 0
+MotorLeft= 168
+MotorTop= 376
+MotorUse=1
+MotorOpp= 18
+ZeroLeft= 289
+ZeroTop= 366
+[MOTOR1_PROPERTY]
+MotorNo= 1
+MotorGroup= 0
+MotorLeft= 163
+MotorTop= 333
+MotorUse=1
+MotorOpp= 19
+ZeroLeft= 285
+ZeroTop= 324
+[MOTOR2_PROPERTY]
+MotorNo= 2
+MotorGroup= 0
+MotorLeft= 166
+MotorTop= 283
+MotorUse=1
+MotorOpp= 20
+ZeroLeft= 286
+ZeroTop= 276
+[MOTOR3_PROPERTY]
+MotorNo= 3
+MotorGroup= 0
+MotorLeft= 160
+MotorTop= 202
+MotorUse=1
+MotorOpp= 21
+ZeroLeft= 286
+ZeroTop= 207
+[MOTOR4_PROPERTY]
+MotorNo= 4
+MotorGroup= 0
+MotorLeft= 164
+MotorTop= 156
+MotorUse=1
+MotorOpp= 22
+ZeroLeft= 287
+ZeroTop= 160
+[MOTOR5_PROPERTY]
+MotorNo= 5
+MotorGroup= 0
+MotorLeft= 8
+MotorTop= 148
+MotorUse=0
+MotorOpp= 5
+ZeroLeft= 12
+ZeroTop= 92
+[MOTOR6_PROPERTY]
+MotorNo= 6
+MotorGroup= 1
+MotorLeft= 190
+MotorTop= 45
+MotorUse=1
+MotorOpp= 12
+ZeroLeft= 311
+ZeroTop= 54
+[MOTOR7_PROPERTY]
+MotorNo= 7
+MotorGroup= 1
+MotorLeft= 222
+MotorTop= 73
+MotorUse=1
+MotorOpp= 13
+ZeroLeft= 340
+ZeroTop= 75
+[MOTOR8_PROPERTY]
+MotorNo= 8
+MotorGroup= 1
+MotorLeft= 248
+MotorTop= 127
+MotorUse=1
+MotorOpp= 14
+ZeroLeft= 411
+ZeroTop= 77
+[MOTOR9_PROPERTY]
+MotorNo= 9
+MotorGroup= 1
+MotorLeft= 8
+MotorTop= 260
+MotorUse=0
+MotorOpp= 9
+ZeroLeft= 12
+ZeroTop= 156
+[MOTOR10_PROPERTY]
+MotorNo= 10
+MotorGroup= 1
+MotorLeft= 8
+MotorTop= 288
+MotorUse=0
+MotorOpp= 10
+ZeroLeft= 12
+ZeroTop= 172
+[MOTOR11_PROPERTY]
+MotorNo= 11
+MotorGroup= 1
+MotorLeft= 8
+MotorTop= 316
+MotorUse=0
+MotorOpp= 11
+ZeroLeft= 12
+ZeroTop= 188
+[MOTOR12_PROPERTY]
+MotorNo= 12
+MotorGroup= 2
+MotorLeft= 52
+MotorTop= 43
+MotorUse=1
+MotorOpp= 6
+ZeroLeft= 185
+ZeroTop= 55
+[MOTOR13_PROPERTY]
+MotorNo= 13
+MotorGroup= 2
+MotorLeft= 20
+MotorTop= 72
+MotorUse=1
+MotorOpp= 7
+ZeroLeft= 153
+ZeroTop= 75
+[MOTOR14_PROPERTY]
+MotorNo= 14
+MotorGroup= 2
+MotorLeft= 7
+MotorTop= 126
+MotorUse=1
+MotorOpp= 8
+ZeroLeft= 88
+ZeroTop= 78
+[MOTOR15_PROPERTY]
+MotorNo= 15
+MotorGroup= 2
+MotorLeft= 88
+MotorTop= 92
+MotorUse=0
+MotorOpp= 15
+ZeroLeft= 72
+ZeroTop= 60
+[MOTOR16_PROPERTY]
+MotorNo= 16
+MotorGroup= 2
+MotorLeft= 88
+MotorTop= 120
+MotorUse=0
+MotorOpp= 16
+ZeroLeft= 72
+ZeroTop= 76
+[MOTOR17_PROPERTY]
+MotorNo= 17
+MotorGroup= 2
+MotorLeft= 88
+MotorTop= 148
+MotorUse=0
+MotorOpp= 17
+ZeroLeft= 72
+ZeroTop= 92
+[MOTOR18_PROPERTY]
+MotorNo= 18
+MotorGroup= 3
+MotorLeft= 70
+MotorTop= 376
+MotorUse=1
+MotorOpp= 0
+ZeroLeft= 206
+ZeroTop= 368
+[MOTOR19_PROPERTY]
+MotorNo= 19
+MotorGroup= 3
+MotorLeft= 79
+MotorTop= 334
+MotorUse=1
+MotorOpp= 1
+ZeroLeft= 213
+ZeroTop= 325
+[MOTOR20_PROPERTY]
+MotorNo= 20
+MotorGroup= 3
+MotorLeft= 77
+MotorTop= 283
+MotorUse=1
+MotorOpp= 2
+ZeroLeft= 211
+ZeroTop= 275
+[MOTOR21_PROPERTY]
+MotorNo= 21
+MotorGroup= 3
+MotorLeft= 79
+MotorTop= 203
+MotorUse=1
+MotorOpp= 3
+ZeroLeft= 211
+ZeroTop= 208
+[MOTOR22_PROPERTY]
+MotorNo= 22
+MotorGroup= 3
+MotorLeft= 74
+MotorTop= 157
+MotorUse=1
+MotorOpp= 4
+ZeroLeft= 213
+ZeroTop= 160
+[MOTOR23_PROPERTY]
+MotorNo= 23
+MotorGroup= 3
+MotorLeft= 88
+MotorTop= 316
+MotorUse=0
+MotorOpp= 23
+ZeroLeft= 72
+ZeroTop= 188

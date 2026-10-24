@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RoboZak</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+  <body>
+    <header>
+      <strong>RoboZak</strong>
+      <select id="robot"><option value="robonova">Robonova</option><option value="roki">Roki</option></select>
+      <button id="check">Verifica</button>
+      <button id="run">Esegui (simulazione)</button>
+      <span class="sp"></span>
+      <select id="port"></select>
+      <button id="refresh">Aggiorna porte</button>
+      <button id="connect">Connetti</button>
+      <button id="tab-help">Aiuto</button>
+    </header>
+    <main>
+      <section class="editor"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false"></textarea></section>
+      <section class="robot" id="robot-view"><div id="stage"></div></section>
+      <aside>
+        <div id="console"></div>
+        <div id="help" hidden>
+          <input id="help-q" placeholder="Cerca comando…" />
+          <ul id="help-list"></ul>
+          <article id="help-body"></article>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>

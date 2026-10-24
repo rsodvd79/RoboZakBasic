@@ -1,0 +1,28 @@
+html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #1e1e1e; color: #ddd; }
+body { display: flex; flex-direction: column; }
+header { display: flex; gap: 8px; align-items: center; padding: 8px; background: #2d2d2d; }
+header .sp { flex: 1; }
+main { flex: 1; display: flex; min-height: 0; }
+.editor { position: relative; flex: 1; min-width: 300px; }
+.editor pre, .editor textarea {
+  position: absolute; inset: 0; margin: 0; padding: 12px; border: 0; overflow: auto;
+  font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre; tab-size: 4;
+}
+.editor pre { color: #ddd; pointer-events: none; }
+.editor textarea { background: transparent; color: transparent; caret-color: #fff; resize: none; outline: none; }
+.k { color: #569cd6; font-weight: bold; }
+.c { color: #6a9955; }
+.robot { width: 360px; overflow: auto; background: #252526; padding: 8px; }
+#stage { position: relative; width: 338px; height: 436px; }
+#stage img { position: absolute; inset: 0; width: 338px; height: 436px; }
+.servo { position: absolute; width: 44px; height: 12px; margin: 0; transform: translate(-50%, -50%); }
+aside { width: 340px; display: flex; flex-direction: column; background: #1b1b1b; min-height: 0; }
+#console { flex: 1; overflow: auto; padding: 8px; font: 13px ui-monospace, Menlo, monospace; }
+#console .e { color: #f48771; } #console .ok { color: #89d185; } #console .w { color: #cca700; }
+#help { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#help[hidden], #console[hidden] { display: none; }
+#help input { margin: 6px; }
+#help-list { list-style: none; margin: 0; padding: 0 6px; max-height: 30%; overflow: auto; font-size: 13px; }
+#help-list li { padding: 2px 4px; cursor: pointer; } #help-list li:hover { background: #333; }
+#help-body { flex: 1; overflow: auto; padding: 8px; font-size: 13px; }
+#help-body img { max-width: 100%; }
