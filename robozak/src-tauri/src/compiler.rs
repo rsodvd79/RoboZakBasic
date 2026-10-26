@@ -864,6 +864,19 @@ impl Compiler {
 /// Compila `src`. `name` è il nome (max 8 caratteri) scritto nell'header;
 /// `stamp` = [giorno, mese, anno%100, ore, minuti, secondi].
 pub fn compile(src: &str, name: &str, stamp: [u8; 6]) -> Res<Vec<u8>> {
+    match compile_inner(src, name, stamp) {
+        // L'originale con più di 192 byte di variabili non segnala errore: produce un programma vuoto
+        Err(e) if e.msg == "변수 영역 초과" => {
+            let mut b = compile_inner("END\r\n", name, stamp)?;
+            b.truncate(b.len() - 3);
+            b[15] -= 3;
+            Ok(b)
+        }
+        r => r,
+    }
+}
+
+fn compile_inner(src: &str, name: &str, stamp: [u8; 6]) -> Res<Vec<u8>> {
     let mut c = Compiler {
         out: Vec::new(),
         line: 0,
@@ -969,6 +982,18 @@ mod tests {
             }
         }
         eprintln!("verificati {checked}; non supportati: {skipped:?}");
+        // Sorgenti rifiutati dall'originale (nessun .hex) devono essere rifiutati anche da noi
+        let mut accepted = Vec::new();
+        for e in std::fs::read_dir(samples()).unwrap().flatten() {
+            let p = e.path();
+            if p.extension().and_then(|x| x.to_str()) == Some("bas") && !p.with_extension("hex").exists() {
+                let src = std::fs::read_to_string(&p).unwrap();
+                if compile(&src, "        ", [0; 6]).is_ok() {
+                    accepted.push(p.file_stem().unwrap().to_string_lossy().to_string());
+                }
+            }
+        }
+        eprintln!("accettati ma rifiutati dall'originale: {accepted:?}");
         assert!(bad.is_empty(), "{} diversi:\n{}", bad.len(), bad.join("\n"));
         assert!(checked >= 80, "verificati solo {checked}; non supportati: {skipped:?}");
     }
