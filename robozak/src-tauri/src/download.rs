@@ -103,6 +103,17 @@ mod tests {
     use super::*;
     use std::collections::VecDeque;
 
+    // Sola lettura sul robot reale: ROBO_PORT=COM1 cargo test real_info -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn real_info() {
+        let name = std::env::var("ROBO_PORT").unwrap_or("COM1".into());
+        let mut p = serialport::new(name, 9_600).timeout(std::time::Duration::from_millis(1000))
+            .open()
+            .unwrap();
+        println!("{:02X?}", controller_info(&mut p));
+    }
+
     // Controller finto: eco dei comandi, `3F` -> `21`, 129 byte di blocco assorbiti senza risposta.
     struct Fake {
         out: VecDeque<u8>,
@@ -190,3 +201,4 @@ mod tests {
         assert_eq!(f.rx.len(), 7 + 9 + 48 + 3 + 1 + 129);
     }
 }
+

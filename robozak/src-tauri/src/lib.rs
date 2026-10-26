@@ -128,7 +128,7 @@ type Port = Mutex<Option<Box<dyn serialport::SerialPort>>>;
 
 #[tauri::command]
 fn serial_open(port: State<Port>, name: &str) -> Result<(), String> {
-    let p = serialport::new(name, 115_200)
+    let p = serialport::new(name, 9_600)
         .data_bits(serialport::DataBits::Eight)
         .parity(serialport::Parity::None)
         .stop_bits(serialport::StopBits::One)
@@ -212,3 +212,4 @@ mod tests {
         assert_eq!(r.motors[1].left, 163);
     }
 }
+
