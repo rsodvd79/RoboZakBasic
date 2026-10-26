@@ -1,0 +1,2 @@
+CONST X = 5
+END

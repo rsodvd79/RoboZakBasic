@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = A XOR 1
+END

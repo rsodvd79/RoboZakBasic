@@ -1,0 +1,3 @@
+DIM Z AS BYTE
+Z = 1
+END

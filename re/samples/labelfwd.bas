@@ -1,0 +1,6 @@
+GOTO L2
+L1:
+DELAY 1
+L2:
+GOTO L1
+END

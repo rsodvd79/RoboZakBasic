@@ -1,0 +1,3 @@
+DIM A AS BYTE
+OUT A,1
+END

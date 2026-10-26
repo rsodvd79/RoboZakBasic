@@ -1,0 +1,2 @@
+TEMPO 5
+END

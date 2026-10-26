@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = BYTEIN(0)
+END

@@ -1,0 +1,4 @@
+DIM A AS BYTE
+DIM B AS BYTE
+A = B
+END

@@ -1,4 +1,5 @@
 mod basic;
+pub mod compiler;
 
 use serde::Serialize;
 use std::collections::HashMap;

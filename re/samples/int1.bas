@@ -1,0 +1,3 @@
+DIM A AS INTEGER
+A = 1
+END

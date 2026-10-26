@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = A MOD 2
+END

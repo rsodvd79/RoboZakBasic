@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = A AND 1
+END

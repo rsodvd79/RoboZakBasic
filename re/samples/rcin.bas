@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = REMOCON(1)
+END

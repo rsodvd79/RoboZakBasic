@@ -1,0 +1,3 @@
+L1:
+GOTO L1
+END

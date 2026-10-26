@@ -1,0 +1,4 @@
+GOSUB L1
+END
+L1:
+RETURN

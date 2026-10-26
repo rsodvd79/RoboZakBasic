@@ -1,0 +1,3 @@
+DIM A1 AS BYTE
+A1 = 1
+END

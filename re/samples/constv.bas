@@ -1,0 +1,4 @@
+CONST N = 5
+DIM A AS BYTE
+A = N
+END

@@ -1,0 +1,2 @@
+LCDINIT
+END
