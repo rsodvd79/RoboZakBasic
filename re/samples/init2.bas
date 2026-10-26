@@ -1,0 +1,2 @@
+INIT 1
+END

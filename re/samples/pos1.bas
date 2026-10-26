@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = POS(1)
+END

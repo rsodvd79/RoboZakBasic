@@ -1,0 +1,3 @@
+FOR I = 1 TO 10 STEP 2
+NEXT I
+END

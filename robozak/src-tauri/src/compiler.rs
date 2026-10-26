@@ -137,6 +137,9 @@ fn group(name: &str) -> Option<(u8, u8)> {
         "G6D" => (18, 6),
         "G6E" => (24, 6),
         "G8A" => (0, 8),
+        "G8B" => (8, 8),
+        "G8C" => (16, 8),
+        "G8D" => (24, 8),
         "G12" => (0, 12),
         "G16" => (0, 16),
         "G24" => (0, 24),
@@ -176,6 +179,10 @@ fn func_code(name: &str) -> Option<(u8, bool)> {
         "PEEK" => (0xF9, true),
         "REMOCON" => (0xFB, true),
         "SONAR" => (0xFD, true),
+        "ROMPEEK" => (0xFA, true),
+        "MOTORIN" => (0xFE, true),
+        "STATE" => (0xF6, true),
+        "AIMOTORIN" => (0xFC, true),
         _ => return None,
     })
 }
@@ -273,7 +280,18 @@ impl Compiler {
         match c.next() {
             Some(Tok::Id(s)) => {
                 if s == "RCIN" {
-                    return self.unsupported("RCIN");
+                    // RCIN(n) è un AD sul canale 100+n
+                    if !c.eat_op("(") {
+                        return self.err("형식이 맞지 않습니다.");
+                    }
+                    let Some(n @ 0..=3) = self.const_num(c)? else {
+                        return self.err("형식이 맞지 않습니다.");
+                    };
+                    if !c.eat_op(")") {
+                        return self.err("형식이 맞지 않습니다.");
+                    }
+                    self.out.push(0xF3);
+                    return self.num(100 + n);
                 }
                 if let Some((code, has_arg)) = func_code(&s) {
                     self.out.push(code);
@@ -590,7 +608,7 @@ impl Compiler {
                 self.operand(c)?;
                 let exit_fix = self.placeholder();
                 if c.is_id("STEP") {
-                    return self.unsupported("FOR..STEP");
+                    return self.err("[FOR(반복)] 명령어의 형식이 맞지 않습니다.");
                 }
                 self.fors.push(ForFrame { var: v, check_addr, exit_fix });
             }
@@ -610,6 +628,114 @@ impl Compiler {
                 self.patch_here(f.exit_fix);
             }
             "BREAK" => self.out.push(0xCB),
+            "BEEP" => self.out.extend_from_slice(&[0xCF, 0x14, 0x02, 0x00]),
+            "PWM" => {
+                self.out.push(0xDE);
+                self.ops(c, 2)?;
+            }
+            "FPWM" => {
+                self.out.push(0xEE);
+                self.ops(c, 3)?;
+            }
+            "ROMPOKE" => {
+                self.out.push(0xCD);
+                self.ops(c, 2)?;
+            }
+            "AIMOTOR" => {
+                self.out.push(0xB7);
+                self.operand(c)?;
+            }
+            "AIMOTOROFF" => {
+                self.out.push(0xB8);
+                self.operand(c)?;
+            }
+            "FUNC" => match self.const_num(c)? {
+                Some(n @ 0..=255) => self.out.extend_from_slice(&[0xB6, n as u8]),
+                _ => return self.err("[FUNC] 숫자 또는 상수만 사용할 수 있습니다."),
+            },
+            "ACTION" => match self.const_num(c)? {
+                Some(n) if (0..=200).contains(&n) => {
+                    self.out.extend_from_slice(&[0xD0, 0x15, 0x40]);
+                    self.num(0x32 + n)?;
+                    self.out.extend_from_slice(&[0x00, 0xC5, 0x28, 0x27]);
+                }
+                _ => return self.err("[ACTION(행동)] 숫자 또는 상수만 사용할 수 있습니다."),
+            },
+            "GYROSET" | "GYRODIR" | "GYROSENSE" => {
+                let (start, count) = self.group_arg(c)?;
+                self.comma(c)?;
+                let vals = self.values(c, count as usize)?;
+                let op = match kw.as_str() {
+                    "GYROSET" => 0xA0,
+                    "GYRODIR" => 0xA1,
+                    _ => 0xA2,
+                };
+                self.out.extend_from_slice(&[op, start, count]);
+                self.out.extend_from_slice(&vals);
+            }
+            "ACCELDIR" | "ACCELSENSE" | "TILTDIR" | "TILTSENSE" => {
+                self.group_arg(c)?;
+                self.comma(c)?;
+                let vals = self.values(c, 6)?;
+                if kw.ends_with("DIR") && vals.iter().any(|v| *v > 1) {
+                    return self.err("사용할 수 있는 숫자의 범위를 벗어났습니다.");
+                }
+                self.out.extend_from_slice(&[0x00, 0x20]);
+                self.out.extend_from_slice(&vals);
+                self.out.extend_from_slice(&[0; 26]);
+            }
+            "ACCELSET" | "TILTSET" => {
+                if self.const_num(c)? != Some(1) {
+                    return self.unsupported(&kw);
+                }
+                let mut vals = vec![0u8; 32];
+                let mut i = 0;
+                while c.eat_op(",") {
+                    match self.const_num(c)? {
+                        Some(n @ 0..=255) if i < 32 => vals[i] = n as u8,
+                        _ => return self.err("형식이 맞지 않습니다."),
+                    }
+                    i += 1;
+                }
+                self.out.extend_from_slice(&[if kw == "ACCELSET" { 0xA0 } else { 0xA9 }, 0x00, 0x20]);
+                self.out.extend_from_slice(&vals);
+            }
+            "ETX" | "ERX" => {
+                let baud = match self.const_num(c)? {
+                    Some(2400) => 0,
+                    Some(4800) => 1,
+                    Some(9600) => 2,
+                    Some(19200) => 4,
+                    Some(38400) => 6,
+                    Some(57600) => 7,
+                    Some(115200) => 9,
+                    _ => return self.err("형식이 올바르지 않습니다."),
+                };
+                self.comma(c)?;
+                if kw == "ETX" {
+                    self.out.extend_from_slice(&[0xD6, baud]);
+                    self.operand(c)?;
+                } else {
+                    let Some(Tok::Id(n)) = c.next() else {
+                        return self.err("형식이 올바르지 않습니다.");
+                    };
+                    let v = self.var(&n)?;
+                    self.comma(c)?;
+                    let l = self.label_name(c)?;
+                    self.out.extend_from_slice(&[0xD5, baud]);
+                    self.out.extend_from_slice(&[if v.int { 0x16 } else { 0x15 }, v.addr]);
+                    self.jump_label(&l);
+                }
+            }
+            "MUSIC" => {
+                let Some(Tok::Str(s)) = c.next() else {
+                    return self.err("형식이 맞지 않습니다.");
+                };
+                self.out.push(0xBA);
+                let fix = self.placeholder();
+                self.music(&s)?;
+                self.patch_here(fix);
+            }
             "IF" => {
                 self.out.push(0xC0);
                 let false_fix = self.placeholder();
@@ -662,6 +788,65 @@ impl Compiler {
             }
             _ => return self.unsupported(&kw),
         }
+        Ok(())
+    }
+
+    // Coppie (durata, nota) terminate da 0. Durata = 96/n (default 4), ottava 3 = C 0x24.
+    fn music(&mut self, s: &str) -> Res<()> {
+        let bad = || CompileError { line: self.line, msg: "연주 문자열이 잘못되었습니다.".into(), unsupported: false };
+        let (mut octave, mut default_len) = (3i32, 24i32);
+        let (mut pending_len, mut sharp) = (None::<i32>, 0i32);
+        let b = s.to_ascii_uppercase().into_bytes();
+        let mut i = 0;
+        let mut out = Vec::new();
+        let number = |i: &mut usize| -> Option<i32> {
+            let st = *i;
+            while *i < b.len() && b[*i].is_ascii_digit() {
+                *i += 1;
+            }
+            std::str::from_utf8(&b[st..*i]).ok()?.parse().ok()
+        };
+        while i < b.len() {
+            let ch = b[i];
+            i += 1;
+            match ch {
+                b'O' => octave = number(&mut i).filter(|o| (1..=7).contains(o)).ok_or_else(bad)?,
+                b'L' => { default_len = 96 / number(&mut i).filter(|n| (1..=96).contains(n)).ok_or_else(bad)?; octave = 2; }
+                b'0'..=b'9' => {
+                    i -= 1;
+                    pending_len = Some(96 / number(&mut i).filter(|n| (1..=96).contains(n)).ok_or_else(bad)?);
+                }
+                b'>' => octave += 1,
+                b'<' => octave -= 1,
+                b'#' | b'+' => sharp = 1,
+                b'-' => sharp = -1,
+                b'H' => {}
+                b'A'..=b'G' | b'P' => {
+                    let n = match ch {
+                        b'C' => 0,
+                        b'D' => 2,
+                        b'E' => 4,
+                        b'F' => 5,
+                        b'G' => 7,
+                        b'A' => 9,
+                        b'B' => 11,
+                        _ => -1,
+                    };
+                    let note = if n < 0 { 0x7F } else { octave * 12 + n + sharp };
+                    out.push(pending_len.take().unwrap_or(default_len));
+                    out.push(note);
+                    sharp = 0;
+                }
+                _ => return Err(bad()),
+            }
+        }
+        for v in out {
+            if !(0..=255).contains(&v) {
+                return Err(bad());
+            }
+            self.out.push(v as u8);
+        }
+        self.out.push(0);
         Ok(())
     }
 
@@ -783,6 +968,7 @@ mod tests {
                 Err(e) => bad.push(format!("{name}: errore riga {}: {}", e.line, e.msg)),
             }
         }
+        eprintln!("verificati {checked}; non supportati: {skipped:?}");
         assert!(bad.is_empty(), "{} diversi:\n{}", bad.len(), bad.join("\n"));
         assert!(checked >= 80, "verificati solo {checked}; non supportati: {skipped:?}");
     }
@@ -801,3 +987,4 @@ mod tests {
         assert!(compile("GOTO X\r\n", "", [0; 6]).is_err());
     }
 }
+

@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = MOTORIN(1)
+END

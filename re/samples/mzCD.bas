@@ -1,0 +1,2 @@
+MUSIC "CD"
+END

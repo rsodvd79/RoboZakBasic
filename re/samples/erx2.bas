@@ -1,0 +1,3 @@
+DIM A AS BYTE
+ERX 1,A
+END

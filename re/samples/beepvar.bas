@@ -1,0 +1,3 @@
+DIM A AS BYTE
+BEEP A
+END

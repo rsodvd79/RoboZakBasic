@@ -1,0 +1,4 @@
+DIM A(10) AS BYTE
+DIM B AS BYTE
+B = A(2) + A(3)
+END

@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = STATE(1)
+END

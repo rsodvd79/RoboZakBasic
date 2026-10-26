@@ -1,0 +1,2 @@
+MUSIC "C6"
+END

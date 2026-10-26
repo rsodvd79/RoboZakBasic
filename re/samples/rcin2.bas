@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = RCIN(2)
+END
