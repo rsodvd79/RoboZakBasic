@@ -37,27 +37,12 @@
 - VB Decompiler Lite 26.5 (installato in `C:\rb_tools\vbd`) apre i file e esporta il disassembly con i nomi delle procedure (`File > Salva tutto in un modulo` -> `re/decomp/rbv2_all.bas`, 8,7 MB, ignorato da git). La Lite non produce VB ad alto livello; le chiamate a MSComm sono late-bound (`__vbaLateIdCallLd`) quindi i nomi dei metodi non compaiono.
 - Procedure di interesse in `rbv2.exe`: `frmMain.Comm_OnComm` (0x58F600), `mnuConRun_Click` (0x5969C0), `mnuAllRun_Click` (0x5964D0).
 
+## Robot reale (verificato su MRC-3000, COM1)
+- Handshake a 9600 baud: `F0` + 6 byte (ogni byte inviato e' una richiesta, il controller risponde con il dato; info `02 02 07 40 BE 05`), `F7 F2 04`/`F7 F3 04` + `00` restituiscono un dato (non un eco), `FA`, nome `B4 4B i 00 c c`, poi `EC`.
+- Dopo `EC` il controller passa a 115200 baud: lunghezza (2 byte, con eco), `3F` -> `21`, blocco da 129 byte senza eco. Catturato con `scripts/frida_serial.py` (hook WriteFile/ReadFile su rbv2.exe).
+- Test sul robot: `cargo test real_info -- --ignored --nocapture` (sola lettura), `real_beep` (scrive BEEP+END).
+
 ## Prossimi passi
-1. Analizzare in Ghidra (x86 nativo) `rbv2.exe`/`roboRemocon.exe` a partire dalle procedure sopra, oppure catturare la seriale con una coppia COM virtuale.
-2. Completare i comandi mancanti con nuovi casi in `cases.txt` (stesso metodo).
-2. Catturare il traffico seriale di roboBASIC (download di un `.bas` e controllo servo live): resta da scoprire il framing del download e l'eventuale checksum.
-3. Esporre `compiler::compile` come comando Tauri di download e implementare l'invio live dei servo in `serial_write`.
-
-## Ghidra (Windows)
-- Ghidra 12.2 richiede JDK 25 (`C:\rb_tools\ghidra_12.2_PUBLIC`). Comando: `analyzeHeadless C:\rb_work\gproj rbv2 -import rbv2.exe -scriptPath re\scripts -postScript DecompileAll.java out.c 0x58F000 0x5A0000` (~90 s). Output in `re/decomp/` (ignorato).
-- Il decompilato è C pseudo-VB: i metodi MSComm sono late-bound (DISPID numerici: `__vbaLateIdCallLd`, es. `Comm_OnComm` legge `Input` come Variant array di byte in `DAT_00674374`), quindi serve mappare i DISPID del controllo MSCOMM32 per leggere il protocollo.
-
-## Protocollo seriale (Ghidra su rbv2.exe, parziale)
-- Primitive `mrIO`: 0x61D9B0 = invia 1 byte e attende eco (err 0xFFFB eco errato, 0xFFFC timeout, 0xFFFD porta chiusa); 0x61DD40 = invia senza eco; 0x61DF60/0x61E510 = ricevi 1 byte.
-- Download (`Proc_23_11` @0x6216F0): invia 0xFA (eco), se modello != 4 invia 0xF0, legge 5 byte di ID + 1 (6 totali) con 0x61E510; poi 0xF1, 0x0E (se modo 2/3), nome/blocchi tramite 0x6271D0, dati con 0x61DD40, chiusura con 0x61D9B0.
-- Dettagli ancora da leggere (valori in variabili VB): payload del blocco, checksum, ack finale. Serve sniffing reale (com0com) o lettura di 0x621CC6-0x6222F6 e 0x622760.
-
-## Sniffing con com0com (COM9 <-> COM10)
-- Setup: copia di roboBASIC in `C:\rb_work\rb272` con `rbv2.ini` -> `CommPort = 9` (quello in Program Files non e' scrivibile). `re/scripts/fakerobot.py` ascolta su COM10, fa l'eco di ogni byte e logga in `re/decomp/fakerobot.log`. Uso: `python scripts\fakerobot.py COM10 decomp\fakerobot.log 900 F0=040201000000 3F=!21` (`X=bytes`: dopo X l'IDE clocka fuori i byte, uno per ogni byte inviato; `X=!bytes`: risposta diretta senza eco).
-- Controller Information: IDE invia `F0`, poi 6x `00` (ogni `00` fa uscire un byte di risposta: ID, FW maj, FW min, ...), poi per ogni indirizzo `F2 <addr> 00 00` (lettura memoria).
-- Run All / Download: `F0`+6x`00`; `F7 F2 04 00`; `F7 F3 04 00`; `FA` (eco); nome programma (8 char): per ogni char `B4 4B <idx> 00 <c> <c>`; poi `EC <len lo> <len hi>` (len = byte totali, 0x1F=31) con eco; poi `3F` ('?') SENZA eco: il robot risponde `21` ('!' = pronto) oppure `45` ('E' = fine/errore); altro -> errore -26. Dopo `21` l'IDE prepara un blocco da 128 byte (con somma di controllo) ma nel test non ha ancora inviato nulla: da chiarire (probabile attesa di altro byte/evento).
-- Errori IDE: -10 = primo byte ID a 0; -26 = risposta a `?` diversa da `!`/`E`.
-- Blocchi (risolto con Frida, `re/scripts/frida_hook.py`, hook su `Output` di MSComm @0x623B44): dopo `21` l'IDE invia UN solo `Output` con un array di 129 byte = 128 dati (zero-padded) + checksum (somma mod 256), senza eco/ack per blocco; poi il ciclo ripete `3F` -> `21` -> 129 byte per ogni blocco da 128. Il buffer e' `FF`, nome (7 char), data (6), lunghezza (2 LE), codice (cioe' l'oggetto del compilatore con il primo byte `00` -> `FF` e l'8o carattere del nome scartato). Verificato: checksum 0x99 sul programma di prova. Il nome in `B4 4B` e' il resto del nome file dal 8o carattere (`d1.bas` per `Untitled1.bas`).
-- Nel banco com0com il `Output` dell'array non produce nessun `WriteFile` (MSComm lo scarta), quindi i 129 byte non si vedono sul filo; resta da verificare con un robot vero il comportamento dopo l'ultimo blocco (fase "Verify", ack finale). `robozak/src-tauri/src/download.rs` implementa la sequenza (testata contro un controller finto).
-- Timing: `0x61E510` azzera i flag all'inizio dell'attesa, quindi la risposta del controller deve arrivare dopo l'invio (fakerobot ritarda 0.3 s le risposte dirette).
-
+- Controllo live dei servo (comando da sniffare con frida_serial.py durante Controller > Run o roboRemocon).
+- Altri controller (MRC-2000, MA2K, MA3K) con campioni `Con_Type`/`Con_ID` diversi.
+- Confronto messaggi di errore e limiti (255 label, 256 variabili) con l'originale.
