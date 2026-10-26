@@ -38,6 +38,7 @@
 - Procedure di interesse in `rbv2.exe`: `frmMain.Comm_OnComm` (0x58F600), `mnuConRun_Click` (0x5969C0), `mnuAllRun_Click` (0x5964D0).
 
 ## Prossimi passi
-1. Analizzare in Ghidra (x86 nativo) `rbv2.exe`/`roboRemocon.exe` a partire dalle procedure sopra, oppure catturare la seriale con una coppia COM virtuale. con nuovi casi in `cases.txt` (stesso metodo).
+1. Analizzare in Ghidra (x86 nativo) `rbv2.exe`/`roboRemocon.exe` a partire dalle procedure sopra, oppure catturare la seriale con una coppia COM virtuale.
+2. Completare i comandi mancanti con nuovi casi in `cases.txt` (stesso metodo).
 2. Catturare il traffico seriale di roboBASIC (download di un `.bas` e controllo servo live): resta da scoprire il framing del download e l'eventuale checksum.
 3. Esporre `compiler::compile` come comando Tauri di download e implementare l'invio live dei servo in `serial_write`.
