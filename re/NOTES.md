@@ -1,24 +1,20 @@
 # Note di reverse engineering (roboBASIC v2.72)
 
+**Stato: MR-C3024 (MRC-3000) completo** (compilatore, download, controllo live dei servo, verificati su robot reale). Gli altri controller non sono implementati.
+
 ## Trovato
 - App VB6 (MSVBVM60). Compilatore BASIC in `rbv2.ocx` (metodi `Compile`, `TotalBytes`, `Bas_Error*`), usato da `rbv2.exe` e `roboRemocon.exe`.
-- Seriale: `115200,n,8,1` (MSComm32), download del programma compilato + verifica codici, controllo/aggiornamento firmware.
+- Seriale (MSComm32): handshake a 9600,n,8,1, trasferimento dati a 115200 (vedi "Robot reale"). Il robot reale non risponde a 115200 prima del passaggio.
 - Tabelle keyword/sintassi e messaggi d'errore del compilatore sono stringhe UTF-16 in `rbv2.ocx` (`re/scripts/u16strings.py`).
 - Comandi per controller: `extracted/mrc*.cmd` (CP949); modelli robot: `extracted/user/*.dat`.
 
-## Bloccato
-- `rbv2.ocx` / `roboRemocon.exe` sono VB6 **p-code**: Ghidra (12.2, `re/scripts/DecompileAll.java`, serve JDK 21+) vede solo ~24 funzioni di runtime, non il codice delle procedure.
-- Formato binario compilato e protocollo di download/PTP live non ricavabili staticamente senza un disassemblatore p-code (es. VB Decompiler) o lo sniffing della seriale con roboBASIC originale + Robonova.
-
-## Strumenti provati
-- Ghidra 12.2: nessun supporto p-code VB6.
-- DaCodeChick/VBDecompiler (compilato con Zig 0.16 + patch a `SQLITE_TRANSIENT` in `core/src/db/sqlite.zig`): riconosce `rbv2.ocx` come p-code ma non trova la VB Object Table, e la tabella opcode in `pcode_opcodes.zig` è inventata (non corrisponde a MSVBVM60): inutilizzabile per il nostro scopo.
-- Restano: VBDec (sandsprite.com/vbdec) o VB Decompiler Lite su Windows/VM; oppure eseguire roboBASIC originale (Windows/Wine) come riferimento black-box.
+## Metodo
+Gli eseguibili sono VB6 a codice nativo (x86, non p-code); la decompilazione statica ha reso poco (VB Decompiler Lite apre i file, Ghidra vede solo il runtime). Ha funzionato: (1) usare `rbv2.ocx` come black box per il compilatore, (2) Frida sull'IDE originale per catturare la seriale (`re/scripts/frida_serial.py`), (3) com0com + `re/scripts/fakerobot.py` per un robot finto nei test, (4) Ghidra (`re/scripts/DecompileAll.java`, JDK 21+) solo di supporto.
 
 ## Compilatore come black box (sbloccato)
 `rbv2.ocx` è un controllo COM registrato (`RBv2.ROBOBASICv2`, oggi punta a `roboBASIC MF v2.80`, stesso formato). Da PowerShell **32 bit**: `Compile(<testo sorgente>)` (non un path!) poi `ObjCode` (byte), `Bas_Error*`, `TotalBytes`.
 - `re/scripts/rbcompile.ps1 <file|cartella>` compila `.bas` -> `.hex`.
-- `re/scripts/rbcases.ps1` compila i casi di `re/samples/cases.txt` (`nome = riga|riga`) e salva `.bas`/`.hex` (149 campioni).
+- `re/scripts/rbcases.ps1` compila i casi di `re/samples/cases.txt` (`nome = riga|riga`) e salva `.bas`/`.hex` (oggi 242 campioni verificati, piu' i sorgenti rifiutati dall'originale, che nel test devono essere rifiutati anche da noi).
 - Implementazione Rust: `robozak/src-tauri/src/compiler.rs`; il test `matches_original_compiler` confronta byte per byte con i `.hex` (ignorando il timestamp).
 
 ### Formato del binario (offset dall'inizio del file)
@@ -30,7 +26,15 @@
 - Funzioni: `RND F8`, `IN F0`, `BYTEIN F2`, `AD F3`, `PEEK F9`, `REMOCON FB`, `SONAR FD`.
 - Istruzioni: `C0 else cond 00`=IF (blocco; ELSE/ELSEIF emettono `C4 fine`), `C1 var inizio`/`C3 var limite uscita`/`C2 var C3addr`=FOR/NEXT (nessun STEP), `CB` BREAK, `C4` GOTO (anche END = salto a sé), `C5` GOSUB, `C6` RETURN, `C7 op n addr..` ON GOTO, `D0 var expr 00` assegnazione, `D1` OUT, `D3` TOGGLE, `D4 op E9` DELAY, `DA`/`DB` MOTOR/MOTOROFF (uno per motore), `DD` SPEED, `DF` SERVO, `B0 start n v..` MOVE, `B4 start n mask` DIR, `B9 start n flag..` GETMOTORSET, `ED 01/00` PTP SETON/OFF, `B6 06/05` PTP ALLON/OFF, `B6 01/00` HIGHSPEED, `E0..E4` LCDINIT/CLS/LOCATE/PRINT/CSON, `E5` CSOFF, `E6` CONT, `E7` BYTEOUT, `E9` WAIT, `EA E9` STOP, `CC` POKE, `BF` TEMPO.
 - Gruppi (start,n): G6A 0,6 · G6B 6,6 · G6C 12,6 · G6D 18,6 · G6E 24,6 · G8A 0,8 · G12/16/24/32 da 0. MOVE: valori solo costanti, omessi = 0.
-- Non ancora gestiti: BEEP, MUSIC, PWM/FPWM, ETX/ERX, GYRO*/ACCEL*/TILT*, AIMOTOR, array, STEP, RCIN, MOVE G8B..G8D.
+- Altri gruppi: G8B 8,8 · G8C 16,8 · G8D 24,8.
+- Funzioni con un argomento: `ROMPEEK FA`, `MOTORIN FE`, `STATE F6`, `AIMOTORIN FC`. `RCIN(n)` = `F3 12 (100+n)`.
+- `ACTION n` (solo costante) = `D0 15 40 12 (0x32+n) 00 C5 28 27`; `FUNC n` = `B6 n`; `BEEP` = `CF 14 02 00` (nessun argomento); `PWM a,b` = `DE`; `FPWM a,b,c` = `EE`; `ROMPOKE a,b` = `CD`.
+- `AIMOTOR n` = `B7`, `AIMOTOROFF n` = `B8`.
+- `GYROSET/GYRODIR/GYROSENSE g,v1..v6` = `A0/A1/A2 start n` + 6 valori. `ACCELSET`/`TILTSET` = `A0`/`A9 00 20` + 32 byte (primo argomento scartato). `ACCELDIR/SENSE`, `TILTDIR/SENSE` = `00 20` + 32 byte (6 valori all'inizio, resto 0).
+- `ETX baud,x` = `D6 <codice> op`; `ERX baud,var,label` = `D5 <codice> <tag var> <addr label>`. Codici baud: 2400=0, 4800=1, 9600=2, 19200=4, 38400=6, 57600=7, 115200=9.
+- `MUSIC "..."` = `BA <addr> <coppie durata,nota> 00`. Ottava 3 (default): C=0x24, D=26, E=28, F=29, G=2B, A=2D, B=2F; +12 per ottava. Durata `Ln` = 96/n (default L4 = 0x18); `Ln` riporta l'ottava a 2; `>`/`<` ±1 ottava; `#`/`+`/`-` alterano di 1 semitono; `P` = pausa `7F`; `H` ignorato; `R`, `T`, `V`, `.` = errore 47.
+- `FOR..STEP` e `NOT`/`KEYIN`/`POS` come funzioni: errore dell'originale (non supportati).
+- Limiti: oltre 192 byte di variabili (0x40..0xFF) l'originale non da' errore ma produce un programma vuoto (`END` senza codice); nessun limite sul numero di label (provati 300).
 
 ## Decompilazione (Windows)
 - **Correzione**: `rbv2.ocx`, `rbv2.exe` (e probabilmente `roboRemocon.exe`) sono VB6 **codice nativo x86** (non p-code). I tentativi precedenti (macOS) li avevano classificati male.
@@ -38,11 +42,13 @@
 - Procedure di interesse in `rbv2.exe`: `frmMain.Comm_OnComm` (0x58F600), `mnuConRun_Click` (0x5969C0), `mnuAllRun_Click` (0x5964D0).
 
 ## Robot reale (verificato su MRC-3000, COM1)
-- Handshake a 9600 baud: `F0` + 6 byte (ogni byte inviato e' una richiesta, il controller risponde con il dato; info `02 02 07 40 BE 05`), `F7 F2 04`/`F7 F3 04` + `00` restituiscono un dato (non un eco), `FA`, nome `B4 4B i 00 c c`, poi `EC`.
-- Dopo `EC` il controller passa a 115200 baud: lunghezza (2 byte, con eco), `3F` -> `21`, blocco da 129 byte senza eco. Catturato con `scripts/frida_serial.py` (hook WriteFile/ReadFile su rbv2.exe).
-- Test sul robot: `cargo test real_info -- --ignored --nocapture` (sola lettura), `real_beep` (scrive BEEP+END).
+Ogni byte inviato viene normalmente rimandato come eco; dove il controller risponde con un dato e' indicato.
+- Handshake a 9600 baud: `F0` + 6 byte `00` (ogni `00` riceve un byte di info; MR-C3024: `02 02 07 40 BE 05`), `F7 F2 04 00` e `F7 F3 04 00` (il 4o byte riceve un dato, non un eco), `FA`, nome del programma `B4 4B i 00 c c` (8 caratteri), poi `EC`.
+- Dopo `EC` il controller passa a 115200 baud: lunghezza (2 byte LE, con eco), poi per ogni blocco da 128 byte `3F` -> `21` e 129 byte senza eco (128 dati zero-padded + checksum somma mod 256). Il buffer e' `FF`, nome (7 char), data (6), lunghezza (2 LE), codice. Nel log dell'IDE non c'e' una conferma finale dopo l'ultimo blocco.
+- Controllo live servo: `E6 <motore> <pos>` (eco dei 3 byte). La lettura posizioni usa `F7 (EB+n/8) 04 00`, `F7 (CA+n/8) 04 00`, `F7 n 03 00` (risposta = posizione), `D2 n 00`, `E7 n`.
+- Implementazione: `robozak/src-tauri/src/download.rs` (`FAST_BAUD`), comandi Tauri `download_program` e `servo_set` in `lib.rs`.
+- Test sul robot: `cargo test real_info -- --ignored --nocapture` (sola lettura), `real_beep` (scrive BEEP+END). Il `BEEP` non si sente sul robot, anche con l'IDE originale produce gli stessi byte; `MUSIC` si sente.
 
-## Prossimi passi
-- Controllo live dei servo (comando da sniffare con frida_serial.py durante Controller > Run o roboRemocon).
-- Altri controller (MRC-2000, MA2K, MA3K) con campioni `Con_Type`/`Con_ID` diversi.
-- Confronto messaggi di errore e limiti (255 label, 256 variabili) con l'originale.
+## Non fatto
+- Altri controller (MRC-2000, MA2K, MA3K): servono campioni con `Con_Type`/`Con_ID` diversi e la cattura del protocollo.
+- Confronto sistematico di tutti i messaggi d'errore e dei numeri di riga con l'originale.
