@@ -42,3 +42,7 @@
 2. Completare i comandi mancanti con nuovi casi in `cases.txt` (stesso metodo).
 2. Catturare il traffico seriale di roboBASIC (download di un `.bas` e controllo servo live): resta da scoprire il framing del download e l'eventuale checksum.
 3. Esporre `compiler::compile` come comando Tauri di download e implementare l'invio live dei servo in `serial_write`.
+
+## Ghidra (Windows)
+- Ghidra 12.2 richiede JDK 25 (`C:\rb_tools\ghidra_12.2_PUBLIC`). Comando: `analyzeHeadless C:\rb_work\gproj rbv2 -import rbv2.exe -scriptPath re\scripts -postScript DecompileAll.java out.c 0x58F000 0x5A0000` (~90 s). Output in `re/decomp/` (ignorato).
+- Il decompilato è C pseudo-VB: i metodi MSComm sono late-bound (DISPID numerici: `__vbaLateIdCallLd`, es. `Comm_OnComm` legge `Input` come Variant array di byte in `DAT_00674374`), quindi serve mappare i DISPID del controllo MSCOMM32 per leggere il protocollo.
