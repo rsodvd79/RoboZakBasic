@@ -67,7 +67,7 @@ async function loadRobot() {
 }
 
 function onServo(motor: number, angle: number) {
-  if (connected) log(`Motore ${motor} = ${angle} (solo vista: protocollo seriale live non ancora implementato)`, "w");
+  if (connected) invoke("servo_set", { motor, pos: angle }).catch((e) => log(String(e), "e"));
 }
 
 async function loadPorts() {

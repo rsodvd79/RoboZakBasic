@@ -152,6 +152,17 @@ fn serial_write(port: State<Port>, data: Vec<u8>) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn servo_set(port: State<Port>, motor: u8, pos: u8) -> Result<(), String> {
+    let mut g = port.lock().unwrap();
+    let p = g.as_mut().ok_or("Porta seriale non aperta")?;
+    p.write_all(&[0xE6, motor, pos]).map_err(|e| e.to_string())?;
+    // il controller ripete i 3 byte; scartarli per non accumulare dati
+    let mut echo = [0u8; 3];
+    let _ = p.read(&mut echo);
+    Ok(())
+}
+
+#[tauri::command]
 fn serial_read(port: State<Port>, max: usize) -> Result<Vec<u8>, String> {
     let mut g = port.lock().unwrap();
     let p = g.as_mut().ok_or("Porta seriale non aperta")?;
@@ -187,7 +198,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(Port::default())
-        .invoke_handler(tauri::generate_handler![keywords, robot, serial_ports, check_program, simulate, serial_open, serial_close, serial_write, serial_read, download_program])
+        .invoke_handler(tauri::generate_handler![keywords, robot, serial_ports, check_program, simulate, serial_open, serial_close, serial_write, serial_read, download_program, servo_set])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -213,6 +224,7 @@ mod tests {
         assert_eq!(r.motors[1].left, 163);
     }
 }
+
 
 
 
