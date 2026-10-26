@@ -32,7 +32,12 @@
 - Gruppi (start,n): G6A 0,6 · G6B 6,6 · G6C 12,6 · G6D 18,6 · G6E 24,6 · G8A 0,8 · G12/16/24/32 da 0. MOVE: valori solo costanti, omessi = 0.
 - Non ancora gestiti: BEEP, MUSIC, PWM/FPWM, ETX/ERX, GYRO*/ACCEL*/TILT*, AIMOTOR, array, STEP, RCIN, MOVE G8B..G8D.
 
+## Decompilazione (Windows)
+- **Correzione**: `rbv2.ocx`, `rbv2.exe` (e probabilmente `roboRemocon.exe`) sono VB6 **codice nativo x86** (non p-code). I tentativi precedenti (macOS) li avevano classificati male.
+- VB Decompiler Lite 26.5 (installato in `C:\rb_tools\vbd`) apre i file e esporta il disassembly con i nomi delle procedure (`File > Salva tutto in un modulo` -> `re/decomp/rbv2_all.bas`, 8,7 MB, ignorato da git). La Lite non produce VB ad alto livello; le chiamate a MSComm sono late-bound (`__vbaLateIdCallLd`) quindi i nomi dei metodi non compaiono.
+- Procedure di interesse in `rbv2.exe`: `frmMain.Comm_OnComm` (0x58F600), `mnuConRun_Click` (0x5969C0), `mnuAllRun_Click` (0x5964D0).
+
 ## Prossimi passi
-1. Completare i comandi mancanti con nuovi casi in `cases.txt` (stesso metodo).
+1. Analizzare in Ghidra (x86 nativo) `rbv2.exe`/`roboRemocon.exe` a partire dalle procedure sopra, oppure catturare la seriale con una coppia COM virtuale. con nuovi casi in `cases.txt` (stesso metodo).
 2. Catturare il traffico seriale di roboBASIC (download di un `.bas` e controllo servo live): resta da scoprire il framing del download e l'eventuale checksum.
 3. Esporre `compiler::compile` come comando Tauri di download e implementare l'invio live dei servo in `serial_write`.
