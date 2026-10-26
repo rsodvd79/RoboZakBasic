@@ -173,7 +173,7 @@ fn download_program(
     name: &str,
     stamp: [u8; 6],
 ) -> Result<usize, String> {
-    let obj = compiler::compile(src, name, stamp).map_err(|e| format!("{e:?}"))?;
+    let obj = compiler::compile(src, name, stamp).map_err(|e| format!("Riga {}: {}", e.line, e.msg))?;
     let mut g = port.lock().unwrap();
     let p = g.as_mut().ok_or("Porta seriale non aperta")?;
     let title: String = name.chars().skip(7).collect();
@@ -213,6 +213,7 @@ mod tests {
         assert_eq!(r.motors[1].left, 163);
     }
 }
+
 
 
 

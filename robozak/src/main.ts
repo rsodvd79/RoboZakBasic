@@ -86,10 +86,27 @@ async function toggleConnect() {
       await invoke("serial_open", { name: $<HTMLSelectElement>("port").value });
       connected = true;
       btn.textContent = "Disconnetti";
-      log("Porta aperta a 115200,n,8,1");
+      log("Porta aperta a 9600,n,8,1");
     }
   } catch (e) {
     log(String(e), "e");
+  }
+}
+
+async function download() {
+  if (!connected) return log("Connetti prima la porta seriale", "e");
+  const d = new Date();
+  const stamp = [d.getDate(), d.getMonth() + 1, d.getFullYear() % 100, d.getHours(), d.getMinutes(), d.getSeconds()];
+  try {
+    log("Compilazione e download in corso...");
+    const n = await invoke<number>("download_program", {
+      src: $<HTMLTextAreaElement>("code").value,
+      name: "ROBOZAK1",
+      stamp,
+    });
+    log(`Download completato (${n} byte)`, "ok");
+  } catch (e: any) {
+    log(e?.line ? `Riga ${e.line}: ${e.msg}` : String(e), "e");
   }
 }
 
@@ -177,6 +194,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("refresh").addEventListener("click", loadPorts);
   $("connect").addEventListener("click", toggleConnect);
   $("check").addEventListener("click", check);
+  $("download").addEventListener("click", download);
   $("run").addEventListener("click", async () => {
     if (await check()) await run();
   });
