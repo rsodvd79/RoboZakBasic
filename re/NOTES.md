@@ -46,3 +46,8 @@
 ## Ghidra (Windows)
 - Ghidra 12.2 richiede JDK 25 (`C:\rb_tools\ghidra_12.2_PUBLIC`). Comando: `analyzeHeadless C:\rb_work\gproj rbv2 -import rbv2.exe -scriptPath re\scripts -postScript DecompileAll.java out.c 0x58F000 0x5A0000` (~90 s). Output in `re/decomp/` (ignorato).
 - Il decompilato è C pseudo-VB: i metodi MSComm sono late-bound (DISPID numerici: `__vbaLateIdCallLd`, es. `Comm_OnComm` legge `Input` come Variant array di byte in `DAT_00674374`), quindi serve mappare i DISPID del controllo MSCOMM32 per leggere il protocollo.
+
+## Protocollo seriale (Ghidra su rbv2.exe, parziale)
+- Primitive `mrIO`: 0x61D9B0 = invia 1 byte e attende eco (err 0xFFFB eco errato, 0xFFFC timeout, 0xFFFD porta chiusa); 0x61DD40 = invia senza eco; 0x61DF60/0x61E510 = ricevi 1 byte.
+- Download (`Proc_23_11` @0x6216F0): invia 0xFA (eco), se modello != 4 invia 0xF0, legge 5 byte di ID + 1 (6 totali) con 0x61E510; poi 0xF1, 0x0E (se modo 2/3), nome/blocchi tramite 0x6271D0, dati con 0x61DD40, chiusura con 0x61D9B0.
+- Dettagli ancora da leggere (valori in variabili VB): payload del blocco, checksum, ack finale. Serve sniffing reale (com0com) o lettura di 0x621CC6-0x6222F6 e 0x622760.
