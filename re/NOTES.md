@@ -51,3 +51,9 @@
 - Primitive `mrIO`: 0x61D9B0 = invia 1 byte e attende eco (err 0xFFFB eco errato, 0xFFFC timeout, 0xFFFD porta chiusa); 0x61DD40 = invia senza eco; 0x61DF60/0x61E510 = ricevi 1 byte.
 - Download (`Proc_23_11` @0x6216F0): invia 0xFA (eco), se modello != 4 invia 0xF0, legge 5 byte di ID + 1 (6 totali) con 0x61E510; poi 0xF1, 0x0E (se modo 2/3), nome/blocchi tramite 0x6271D0, dati con 0x61DD40, chiusura con 0x61D9B0.
 - Dettagli ancora da leggere (valori in variabili VB): payload del blocco, checksum, ack finale. Serve sniffing reale (com0com) o lettura di 0x621CC6-0x6222F6 e 0x622760.
+
+## Sniffing con com0com (COM9 <-> COM10)
+- Setup: copia di roboBASIC in `C:\rb_work\rb272` con `rbv2.ini` -> `CommPort = 9` (quello in Program Files non e' scrivibile). `re/scripts/fakerobot.py` ascolta su COM10, fa l'eco di ogni byte e logga in `re/decomp/fakerobot.log`. Uso: `python scripts\fakerobot.py COM10 decomp\fakerobot.log 900 F0=040201000000 3F=!21` (`X=bytes`: dopo X l'IDE clocka fuori i byte, uno per ogni byte inviato; `X=!bytes`: risposta diretta senza eco).
+- Controller Information: IDE invia `F0`, poi 6x `00` (ogni `00` fa uscire un byte di risposta: ID, FW maj, FW min, ...), poi per ogni indirizzo `F2 <addr> 00 00` (lettura memoria).
+- Run All / Download: `F0`+6x`00`; `F7 F2 04 00`; `F7 F3 04 00`; `FA` (eco); nome programma (8 char): per ogni char `B4 4B <idx> 00 <c> <c>`; poi `EC <len lo> <len hi>` (len = byte totali, 0x1F=31) con eco; poi `3F` ('?') SENZA eco: il robot risponde `21` ('!' = pronto) oppure `45` ('E' = fine/errore); altro -> errore -26. Dopo `21` l'IDE prepara un blocco da 128 byte (con somma di controllo) ma nel test non ha ancora inviato nulla: da chiarire (probabile attesa di altro byte/evento).
+- Errori IDE: -10 = primo byte ID a 0; -26 = risposta a `?` diversa da `!`/`E`.
