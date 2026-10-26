@@ -1,5 +1,6 @@
 mod basic;
 pub mod compiler;
+pub mod download;
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -165,12 +166,27 @@ fn serial_read(port: State<Port>, max: usize) -> Result<Vec<u8>, String> {
     }
 }
 
+#[tauri::command]
+fn download_program(
+    port: State<Port>,
+    src: &str,
+    name: &str,
+    stamp: [u8; 6],
+) -> Result<usize, String> {
+    let obj = compiler::compile(src, name, stamp).map_err(|e| format!("{e:?}"))?;
+    let mut g = port.lock().unwrap();
+    let p = g.as_mut().ok_or("Porta seriale non aperta")?;
+    let title: String = name.chars().skip(7).collect();
+    download::download(p, &obj, &title, &mut |_, _| {})?;
+    Ok(obj.len())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(Port::default())
-        .invoke_handler(tauri::generate_handler![keywords, robot, serial_ports, check_program, simulate, serial_open, serial_close, serial_write, serial_read])
+        .invoke_handler(tauri::generate_handler![keywords, robot, serial_ports, check_program, simulate, serial_open, serial_close, serial_write, serial_read, download_program])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

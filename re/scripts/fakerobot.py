@@ -32,7 +32,9 @@ with open(log, "w") as f:
                 continue
             if b in direct:
                 # byte non confermato con eco: il robot risponde direttamente
-                s.write(direct[b])
+                for x in direct[b]:
+                    time.sleep(0.3)
+                    s.write(bytes([x]))
                 f.write(f"{time.time()-t0:8.3f} => {direct[b].hex()}\n")
                 continue
             s.write(bytes([b]))
