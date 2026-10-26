@@ -177,7 +177,8 @@ fn download_program(
     let mut g = port.lock().unwrap();
     let p = g.as_mut().ok_or("Porta seriale non aperta")?;
     let title: String = name.chars().skip(7).collect();
-    download::download(p, &obj, &title, &mut |_, _| {})?;
+    download::download(p, &obj, &title, &mut |p| p.set_baud_rate(download::FAST_BAUD).map_err(|e| e.to_string()), &mut |_, _| {})?;
+    p.set_baud_rate(9_600).map_err(|e| e.to_string())?;
     Ok(obj.len())
 }
 
@@ -212,4 +213,6 @@ mod tests {
         assert_eq!(r.motors[1].left, 163);
     }
 }
+
+
 

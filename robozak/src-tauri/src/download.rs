@@ -68,22 +68,34 @@ pub fn controller_info<P: Read + Write>(p: &mut P) -> Result<[u8; 6], String> {
     Ok(info)
 }
 
+pub const FAST_BAUD: u32 = 115_200;
+
 /// `title`: caratteri del nome da mostrare sul controller (8, riempiti con spazi).
 pub fn download<P: Read + Write>(
     p: &mut P,
     object: &[u8],
     title: &str,
+    fast: &mut dyn FnMut(&mut P) -> Result<(), String>,
     progress: &mut dyn FnMut(usize, usize),
 ) -> Result<(), String> {
     let img = image(object)?;
     controller_info(p)?;
-    send_echo(p, &[0xF7, 0xF2, 0x04, 0x00, 0xF7, 0xF3, 0x04, 0x00, 0xFA])?;
+    // F7 aa bb + byte nullo: il controller risponde con un valore (non un eco)
+    for cmd in [[0xF7, 0xF2, 0x04], [0xF7, 0xF3, 0x04]] {
+        send_echo(p, &cmd)?;
+        p.write_all(&[0]).map_err(|e| e.to_string())?;
+        read_byte(p)?;
+    }
+    send_echo(p, &[0xFA])?;
     let mut name: Vec<u8> = title.bytes().take(8).collect();
     name.resize(8, b' ');
     for (i, c) in name.iter().enumerate() {
         send_echo(p, &[0xB4, 0x4B, i as u8, 0x00, *c, *c])?;
     }
-    send_echo(p, &[0xEC, img.len() as u8, (img.len() >> 8) as u8])?;
+    send_echo(p, &[0xEC])?;
+    // dopo EC il controller passa a una velocita' maggiore; la lunghezza ha eco, i blocchi no
+    fast(p)?;
+    send_echo(p, &[img.len() as u8, (img.len() >> 8) as u8])?;
     let all = blocks(&img);
     for (n, b) in all.iter().enumerate() {
         p.write_all(&[0x3F]).map_err(|e| e.to_string())?;
@@ -102,6 +114,21 @@ pub fn download<P: Read + Write>(
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    // Scrive sul robot reale: ROBO_PORT=COM1 cargo test real_beep -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn real_beep() {
+        let name = std::env::var("ROBO_PORT").unwrap_or("COM1".into());
+        let mut p = serialport::new(name, 9_600)
+            .timeout(std::time::Duration::from_millis(2000))
+            .open()
+            .unwrap();
+        let obj = crate::compiler::compile("BEEP\r\nEND\r\n", "BEEPTEST", [26, 10, 26, 18, 0, 0]).unwrap();
+        let r = download(&mut p, &obj, "BEEPTEST", &mut |p| p.set_baud_rate(FAST_BAUD).map_err(|e| e.to_string()), &mut |n, t| println!("blocco {n}/{t}"));
+        println!("{r:?}");
+        r.unwrap();
+    }
 
     // Sola lettura sul robot reale: ROBO_PORT=COM1 cargo test real_info -- --ignored --nocapture
     #[test]
@@ -193,7 +220,7 @@ mod tests {
         };
         let obj = crate::compiler::compile("DIM A AS BYTE\r\nA = 1\r\nDELAY 100\r\nEND\r\n", "t", [26, 10, 26, 15, 4, 31]).unwrap();
         let mut steps = vec![];
-        download(&mut f, &obj, "d1.bas", &mut |n, t| steps.push((n, t))).unwrap();
+        download(&mut f, &obj, "d1.bas", &mut |_| Ok(()), &mut |n, t| steps.push((n, t))).unwrap();
         assert_eq!(steps, vec![(1, 1)]);
         assert_eq!(&f.rx[..7], &[0xF0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(&f.rx[7..15], &[0xF7, 0xF2, 4, 0, 0xF7, 0xF3, 4, 0]);
@@ -201,4 +228,7 @@ mod tests {
         assert_eq!(f.rx.len(), 7 + 9 + 48 + 3 + 1 + 129);
     }
 }
+
+
+
 
