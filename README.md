@@ -85,6 +85,10 @@ npm run tauri dev      # avvio in sviluppo
 npm run tauri build    # pacchetto di rilascio
 ```
 
+### Build automatiche
+
+Il workflow GitHub Actions `Build Release` compila in Release a ogni push; puo' essere avviato anche manualmente dalla scheda **Actions**. Gli artifact Windows e macOS contengono ciascuno uno ZIP `RoboZakBasic.yyyy.MM.dd.HH.mm.zip`, con timestamp UTC: eseguibile `.exe` per Windows e bundle `.app` per macOS (Apple Silicon, runner `macos-latest`). L'app macOS non e' firmata ne' notarizzata; Gatekeeper puo' impedirne l'apertura.
+
 Nell'app: scegli la porta, **Connetti** (identifica il controller a 9600 baud), poi **Scarica sul robot** oppure muovi gli slider. Il controllo live accetta motori 0-23 e posizioni 10-190; gli aggiornamenti sono serializzati e accorpati, e vengono sospesi durante il download.
 
 Il download può sostituire ed eseguire il programma presente sul robot. Dopo ogni tentativo di trasferimento la sessione viene chiusa: il protocollo non fornisce una conferma finale e la transizione immediata del baud dopo l'ultimo blocco non è stata misurata. La chiusura e successiva riconnessione a 9600 baud sono verificate sul MR-C3024 di COM1. Riconnetti prima di usare nuovamente gli slider; se il robot non risponde a 9600 baud, non ritentare automaticamente scritture o movimenti. Anche un errore di eco/trasporto invalida la connessione. Un errore di compilazione, invece, non chiude la porta.

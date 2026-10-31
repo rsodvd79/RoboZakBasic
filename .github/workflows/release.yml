@@ -1,0 +1,71 @@
+name: Build Release
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            runner: windows-latest
+            build-args: --no-bundle --ci
+          - platform: macOS
+            runner: macos-latest
+            build-args: --bundles app --ci
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: robozak
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: robozak/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Release
+        run: npm run tauri build -- ${{ matrix.build-args }}
+
+      - name: Create ZIP
+        id: package
+        run: |
+          $timestamp = [DateTime]::UtcNow.ToString('yyyy.MM.dd.HH.mm')
+          $name = "RoboZakBasic.$timestamp.zip"
+          $archive = Join-Path $env:RUNNER_TEMP $name
+          if ($IsWindows) {
+            Compress-Archive -LiteralPath '.\src-tauri\target\release\robozak.exe' -DestinationPath $archive
+          } else {
+            $app = Join-Path $PWD 'src-tauri' 'target' 'release' 'bundle' 'macos' 'robozak.app'
+            & ditto -c -k --sequesterRsrc --keepParent $app $archive
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          "name=$name" >> $env:GITHUB_OUTPUT
+          "path=$archive" >> $env:GITHUB_OUTPUT
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: RoboZakBasic-${{ matrix.platform }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+          compression-level: 0
