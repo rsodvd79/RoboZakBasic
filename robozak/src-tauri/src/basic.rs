@@ -518,7 +518,11 @@ impl Parser {
             }
             "GOTO" => {
                 let l = self.ident(&mut c)?;
-                self.emit(Op::Goto(l));
+                self.emit(if l == "AUTO" {
+                    Op::Cmd("AUTO".into(), Vec::new())
+                } else {
+                    Op::Goto(l)
+                });
             }
             "GOSUB" => {
                 let l = self.ident(&mut c)?;
@@ -577,15 +581,10 @@ impl Parser {
                     && ["INIT", "SETON", "SETOFF"].iter().any(|mode| c.is_id(mode))
                 {
                     vec![Some(Expr::Var(self.ident(&mut c)?))]
-                } else if [
-                    "MOVE", "MOVE24", "SERVO", "MOTOR", "MOTOROFF", "SPEED", "DELAY", "POS",
-                    "INIT", "AIMOTOR",
-                ]
-                .contains(&first.as_str())
-                {
-                    self.args(&mut c)?
-                } else {
+                } else if first == "ERX" {
                     Vec::new()
+                } else {
+                    self.args(&mut c)?
                 };
                 self.emit(Op::Cmd(first, args));
                 return Ok(());
@@ -823,6 +822,11 @@ impl<'a, H: Host> Interp<'a, H> {
                     .iter()
                     .map(|a| self.arg(a))
                     .collect::<Result<Vec<_>, _>>()?;
+                for (i, arg) in args.iter().enumerate() {
+                    if let Arg::Int(value) = arg {
+                        crate::directives::check_hardware_operand(n, i, *value)?;
+                    }
+                }
                 Arg::Int(self.host.function(n, &args)?)
             }
         })
@@ -989,6 +993,11 @@ fn int(a: &Arg) -> Option<i32> {
 
 impl Host for SimRobot {
     fn command(&mut self, name: &str, args: &[Arg]) -> Result<(), String> {
+        for (i, arg) in args.iter().enumerate() {
+            if let Arg::Int(value) = arg {
+                crate::directives::check_hardware_operand(name, i, *value)?;
+            }
+        }
         match name {
             "MOVE" | "MOVE24" => {
                 let (motors, vals) = match args.first() {
@@ -1005,8 +1014,7 @@ impl Host for SimRobot {
             "SERVO" => {
                 if let [Arg::Int(m), Arg::Int(v)] = args {
                     self.settings.check_position(*m as usize, *v)?;
-                    *self.servos.get_mut(*m as usize).ok_or("Over range.")? =
-                        (*v).clamp(0, 254) as u8;
+                    *self.servos.get_mut(*m as usize).ok_or("Over range.")? = *v as u8;
                 }
             }
             "MOTOR" | "MOTOROFF" => {
@@ -1049,6 +1057,11 @@ impl Host for SimRobot {
             "BREAK" => self
                 .log
                 .push("BREAK non operativo su MR-C3000; non interrompe i cicli FOR".into()),
+            "AUTO" => {
+                return Err(
+                    "GOTO AUTO: template firmware non simulato; esecuzione interrotta".into(),
+                );
+            }
             _ => {
                 let msg = format!("Non simulato: {name}; esecuzione interrotta");
                 self.log.push(msg.clone());
@@ -1059,6 +1072,11 @@ impl Host for SimRobot {
     }
 
     fn function(&mut self, name: &str, args: &[Arg]) -> Result<i32, String> {
+        for (i, arg) in args.iter().enumerate() {
+            if let Arg::Int(value) = arg {
+                crate::directives::check_hardware_operand(name, i, *value)?;
+            }
+        }
         if name == "MOTORIN" {
             let m = args.first().and_then(int).ok_or("Motore non valido")?;
             self.log
@@ -1172,8 +1190,41 @@ mod tests {
         let (v, sim) = run("DIM I AS BYTE\nFOR I = 1 TO 3\nBREAK\nNEXT\nMOVE G6A,10,,30\nEND");
         assert_eq!(v["I"], 4);
         assert_eq!(&sim.servos[..6], &[10, 100, 30, 100, 100, 100]);
-        let (_, sim) = run("MOVE24 1,2,3\nEND");
-        assert_eq!(&sim.servos[..4], &[1, 2, 3, 100]);
+        let (_, sim) = run("MOVE24 10,,30\nEND");
+        assert_eq!(&sim.servos[..4], &[10, 100, 30, 100]);
+    }
+
+    #[test]
+    fn firmware_auto_never_falls_through_to_a_source_movement() {
+        let p = parse("GOTO AUTO\nSERVO 0,10\nEND", &kw()).unwrap();
+        let mut sim = SimRobot::default();
+        let e = Interp::new(&p, &mut sim).run(10).unwrap_err();
+        assert_eq!(e.line, 1);
+        assert!(e.msg.contains("template firmware non simulato"));
+        assert_eq!(sim.servos[0], 100);
+        let (_, sim) = run("IF 1=0 THEN GOTO AUTO\nSERVO 0,10\nEND");
+        assert_eq!(sim.servos[0], 10);
+    }
+
+    #[test]
+    fn dynamic_hardware_operands_are_checked_before_simulated_effects() {
+        for (value, command) in [
+            (255, "SERVO 0,A"),
+            (24, "SERVO A,100"),
+            (24, "MOTOR A"),
+            (24, "A=MOTORIN(A)"),
+            (8, "A=AD(A)"),
+            (16, "SPEED A"),
+        ] {
+            let src = format!("DIM A AS BYTE\nA={value}\n{command}\nEND");
+            let p = parse(&src, &kw()).unwrap();
+            let mut sim = SimRobot::default();
+            let e = Interp::new(&p, &mut sim).run(10).unwrap_err();
+            assert_eq!(e.line, 3, "{src}");
+            assert!(e.msg.contains("fuori intervallo"), "{e:?}");
+            assert!(sim.servos.iter().all(|position| *position == 100));
+            assert!(sim.enabled.iter().all(|enabled| !enabled));
+        }
     }
 
     #[test]

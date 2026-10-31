@@ -6,7 +6,7 @@ Riscrittura moderna (Rust + Tauri v2) di **roboBASIC v2.72**, l'IDE VB6 di HITEC
 
 - **Interfaccia** scura con pannelli adattivi, azioni distinte per verifica/simulazione/download e stato della connessione sempre leggibile.
 - **Editor** con evidenziazione delle keyword, numeri di riga, posizione del cursore e guida comandi ricercabile.
-- **Compilatore** BASIC → codice oggetto del controller: 274 campioni identici byte per byte all'originale, più 78 sorgenti rifiutati con la stessa riga d'errore e verifica del limite di 192 byte di variabili.
+- **Compilatore** BASIC → codice oggetto del controller: 281 campioni identici byte per byte all'originale, più 87 sorgenti rifiutati con la stessa riga d'errore e verifica del limite di 192 byte di variabili.
 - **Verifica** nell'editor tramite lo stesso compilatore del download, con diagnostica in italiano.
 - **Simulatore logico** del dialetto compilabile: aritmetica sequenziale, precedenza tra classi di operatori, INTEGER unsigned, bit, flusso di controllo, posizioni servo, output e tempo `DELAY`. Non riproduce tempi fisici, sensori o tutti gli effetti hardware.
 - **Download** del programma sul robot via seriale (COM, 9600 baud, poi 115200 dopo `EC`).
@@ -26,25 +26,41 @@ Il confronto con `Robobasic_2-10.pdf` e l'OCX ha aggiunto queste forme, coperte 
 |---|---|
 | Numeri e bit | `&H`, `&B`, `&O`, `%` come `MOD`, assegnazione ASCII, `A.0` / `A.BIT`; bit 0-7 per BYTE e 0-15 per INTEGER |
 | Funzioni | `KEYIN(porta, tasti)` e `NOT(operando)`; la forma `NOT A` resta invalida |
-| Motori e controllo | `PULSE`, `ZERO` (80-120), `INIT` e `POS` (10-190), `RUN`, `MOTOR ALLON`, `MOTOROFF ALLOFF` |
+| Motori e controllo | `PULSE`, `ZERO` (80-120), `MOVE` / `MOVE24` / `INIT` / `POS` (valori espliciti 10-190), `RUN`, `MOTOR ALLON`, `MOTOROFF ALLOFF` |
 | Motori AI | `AIMOTOR SETON/SETOFF/INIT`, gruppi, `AIMOTOR ALLON` e `AIMOTOROFF ALLOFF` (31 canali del formato originale) |
 | LCD | `PRINT "OK",65` stampa caratteri, non numeri decimali; `PRINT FORMAT(A,DEC/HEX/BIN[,cifre])`, con cifre predefinite, allineamento e troncamento |
 | Seriale BASIC | `ERX` / `ETX`: 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 76800, 115200, 230400 baud |
 | Pose | `MOVEPOS P1` richiama `P1: POS G6A,...`, anche in IF/THEN, con definizioni successive e piu' gruppi POS consecutivi |
+| Template | `GOTO AUTO`, anche in IF/THEN, usa il richiamo firmware verificato sull'originale; AUTO e' un nome riservato, non un'etichetta utente |
+| Musica | Spazi, virgola come pausa, `O34...`, `M`, `H` / `>`, `L` / `<`, `[ ... ]` anche annidati, alterazioni `#` / `+` / `$` / `-` e durata numerica persistente |
 
 `MOVEPOS` viene **espanso in MOVE**: l'OCX attuale rifiuta la sintassi documentata, quindi non viene inventato un opcode nativo. Il risultato espanso e' confrontato con byte prodotti dall'originale; l'espansione aumenta la dimensione del programma. Si rifiutano inoltre bit oltre il tipo BYTE, anche se l'OCX li lascia accedere alla variabile successiva. Il corpus non certifica ogni sintassi o ogni errore del manuale, che include altri controller e refusi.
 
-INTEGER usa 0-65535 e va in wrap su 16 bit. Aritmetica e operatori di bit hanno uguale precedenza e sono sequenziali (`1 + 2 * 3 = 9`); seguono confronti e combinazioni logiche di confronti. Gli angoli MOVE omessi mantengono la posizione precedente.
+INTEGER usa 0-65535 e va in wrap su 16 bit. Aritmetica e operatori di bit hanno uguale precedenza e sono sequenziali (`1 + 2 * 3 = 9`); seguono confronti e combinazioni logiche di confronti. Gli angoli MOVE omessi mantengono la posizione precedente; uno zero scritto esplicitamente e' invece rifiutato, come dall'originale.
+
+Esempio musicale del manuale: `MUSIC "O34GGAA GGE GGEED"`. `O` legge una sola cifra d'ottava (0-7), quindi `O34` significa ottava 3 e durata 4. La durata `n` vale 96/n e resta attiva per le note successive (0 equivale a 1); `[` e `]` dividono/moltiplicano la durata per 1,5. `L` scende di un'ottava, non e' un prefisso neutro: `L4` scende e imposta la durata 4. Le forme sono confrontate con l'OCX; i refusi sulle note puntate non sono interpretati come nuove sintassi.
+
+`GOTO AUTO` passa al template gia' presente nel firmware Robonova-I e usa il primo indirizzo di variabile, come l'originale. Non installa un template nuovo. Il simulatore si interrompe esplicitamente al richiamo, senza eseguire i movimenti successivi del sorgente.
+
+### Controlli del controller e dimensione programma
+
+Verifica, simulazione e compilazione per download applicano gli stessi controlli anche senza LIMIT: servo fisici 0-23, posizioni 10-190, porte AD/KEYIN 0-7, tasti KEYIN 1-16, SONAR 0-11, SPEED 1-15, PWM/FPWM 0-2. Sono controllati anche operandi costanti nelle espressioni e nelle condizioni. Gli angoli espliciti di gruppi oltre il canale 23 sono rifiutati dall'app; i gruppi generici e gli alias globali del formato originale restano riconosciuti dal compilatore.
+
+Questa validazione e' intenzionalmente piu' restrittiva dell'OCX, che accetta anche `SERVO 24,100`, `SERVO 0,255` e `AD(8)`. Senza LIMIT gli operandi variabili restano compilabili e vengono controllati quando eseguiti nel simulatore; non sono una garanzia dei valori che assumono sul firmware reale.
+
+Il limite prudenziale MR-C3024 e' **32768 byte (32 KB) per l'immagine trasferita, header incluso**, secondo le specifiche nella cartella principale. Non e' una misura della capacita' effettivamente utilizzabile di ogni versione firmware. L'app rifiuta programmi oltre soglia prima della seriale; il compilatore impedisce inoltre il wrap di indirizzi/lunghezze a 16 bit e il download controlla la coerenza dell'header. Blocchi, padding e checksum del protocollo restano invariati.
 
 ### Direttive del sorgente
 
 `'$DEVICE MR-C3024` (anche MRC3000) conferma il target; controller diversi sono rifiutati. `'$LIMIT 0,50,100` imposta i limiti locali del motore 0; sul MR-C3024 sono ammessi motori 0-23 e limiti 10-190. Le direttive sono globali al sorgente, con l'ultimo LIMIT per motore prevalente.
 
-Gli slider applicano i limiti senza inviare movimenti durante l'aggiornamento; direttive invalide sospendono il controllo. Il backend verifica nuovamente il sorgente per ogni comando live. Verifica, simulazione e download rifiutano angoli espliciti fuori limite in SERVO/MOVE/MOVE24/POS/INIT. Con LIMIT, un motore SERVO dinamico o una posizione dinamica sul motore limitato non sono scaricabili: usare valori numerici o CONST. ACTION, FUNC, POKE, ROMPOKE e AIMOTOR INIT sono rifiutati con LIMIT perche' possono modificare posizioni non verificabili.
+Gli slider applicano i limiti senza inviare movimenti durante l'aggiornamento; direttive invalide sospendono il controllo. Il backend verifica nuovamente il sorgente per ogni comando live. Verifica, simulazione e download rifiutano angoli espliciti fuori limite in SERVO/MOVE/MOVE24/POS/INIT. Con LIMIT, un motore SERVO dinamico o una posizione dinamica sul motore limitato non sono scaricabili: usare valori numerici o CONST. ACTION, FUNC, POKE, ROMPOKE, AIMOTOR INIT e GOTO AUTO sono rifiutati con LIMIT perche' possono modificare posizioni non verificabili.
 
 La vista puo' limitare anche l'anteprima di una posizione iniziale simulata fuori intervallo, con un avviso: non cambia lo stato logico del simulatore o del robot. Risultati di verifica/simulazione relativi a un sorgente successivamente modificato non aggiornano la vista corrente.
 
 **LIMIT non e' un limite firmware ne' una protezione meccanica.** Controlla gli angoli comandati dall'applicazione, non la posizione gia' presente, la calibrazione EEPROM, l'attivazione di un motore o altri programmi sul controller. Non sposta automaticamente un servo gia' fuori intervallo. Sensori, EEPROM, LCD fisico, suono, configurazione AI e ripresa RUN restano effetti hardware non simulati.
+
+I PDF e le immagini hardware sono riferimenti, non una certificazione fisica del simulatore. Il protocollo HMI diretto del servo (19200 baud, 8N2) e il circuito Bluetooth non sostituiscono la seriale PC-controller (9600 baud, 8N1). `RoboNova IM Code.pdf` contiene opcode invertiti per gli shift e opcode errati per i salti a p. 9: valgono le codifiche verificate sull'OCX nelle note di interoperabilita'. INKEY, SOUND e PLAY sono indicati dal manuale per MR-C2000 e restano fuori ambito.
 
 ## Struttura
 
@@ -99,7 +115,7 @@ Per rigenerare campioni selezionati con l'originale (COM a 32 bit): `re\scripts\
 .\re\scripts\rbcompile.ps1 .\re\samples -ExpectationsPath (Join-Path (Get-Location) 're\samples\expectations.json')
 ```
 
-Il corpus verificato comprende 352 sorgenti; non garantisce la parità per ogni possibile errore. Clippy con `-D warnings` segnala ancora due avvisi preesistenti in `compiler.rs` (`unnecessary_get_then_check`, `collapsible_if`).
+Il corpus verificato comprende 368 sorgenti, inclusi 16 nuovi casi per MOVE, MUSIC e AUTO; non garantisce la parità per ogni possibile errore. I controlli applicativi hardware e di capacita', piu' restrittivi dell'originale, e i valori dinamici del simulatore hanno regressioni separate. Clippy con `-D warnings` segnala ancora due avvisi preesistenti in `compiler.rs` (`unnecessary_get_then_check`, `collapsible_if`).
 
 Test sul robot reale (ignorati di default):
 

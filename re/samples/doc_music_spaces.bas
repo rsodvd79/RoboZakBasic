@@ -1,0 +1,3 @@
+MUSIC "C D E"
+MUSIC "C,D,E"
+END

@@ -1,4 +1,20 @@
 empty = END
+doc_move_valid = MOVE G6A,10,,190|MOVE24 ,10,,190|END
+doc_move_zero = MOVE G6A,0|END
+doc_move_low = MOVE G6A,9|END
+doc_move_high = MOVE G6A,191|END
+doc_move_ff = MOVE G6A,255|END
+doc_move24_zero = MOVE24 0|END
+doc_move24_high = MOVE24 255|END
+doc_auto_call = GOTO AUTO|END
+doc_auto_if = DIM A AS BYTE|A=1|IF A=1 THEN GOTO AUTO|END
+doc_auto_label = GOTO AUTO|AUTO:|END
+doc_music_manual = MUSIC "O34GGAA GGE GGEED"|END
+doc_music_spaces = MUSIC "C D E"|MUSIC "C,D,E"|END
+doc_music_brackets = MUSIC "[C[DE]FG]A"|MUSIC "[2CD]E"|MUSIC "2[CD]E"|END
+doc_music_controls = MUSIC "O12CD"|MUSIC "MCDE"|MUSIC "HCD"|MUSIC "O4L8CD"|MUSIC "C$D"|MUSIC "0CD"|END
+doc_music_octave = MUSIC "O8C"|END
+doc_music_dotted = MUSIC "C.D"|END
 manual_pulse = DIM A AS BYTE|PULSE 3|PULSE A|END
 manual_zero = ZERO G6A,80,,100,,120,90|END
 manual_zero_low = ZERO G6A,79,100,100,100,100,100|END

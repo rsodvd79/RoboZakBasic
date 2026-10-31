@@ -4,6 +4,7 @@
 use std::io::{Read, Write};
 
 const BLOCK: usize = 128;
+pub const MAX_PROGRAM_BYTES: usize = 32 * 1024;
 
 fn send_echo<P: Read + Write>(p: &mut P, bytes: &[u8]) -> Result<(), String> {
     for &b in bytes {
@@ -31,16 +32,27 @@ fn read_byte<P: Read>(p: &mut P) -> Result<u8, String> {
 /// Buffer inviato al controller: `FF`, nome (7 caratteri), data (6), lunghezza (2), codice.
 /// Il compilatore produce `00`, nome (8), ...: il primo byte diventa `FF` e l'ottavo carattere del nome cade.
 pub fn image(object: &[u8]) -> Result<Vec<u8>, String> {
-    if object.len() < 17 {
-        return Err("Oggetto compilato troppo corto".into());
-    }
-    if object.len() - 1 > usize::from(u16::MAX) {
-        return Err("Oggetto compilato troppo grande per il protocollo".into());
-    }
+    validate_object(object)?;
     let mut v = vec![0xFF];
     v.extend_from_slice(&object[1..8]);
     v.extend_from_slice(&object[9..]);
     Ok(v)
+}
+
+pub fn validate_object(object: &[u8]) -> Result<(), String> {
+    if object.len() < 17 {
+        return Err("Oggetto compilato troppo corto".into());
+    }
+    if object.len() - 1 > MAX_PROGRAM_BYTES {
+        return Err(
+            "Programma troppo grande per MR-C3024: massimo 32768 byte (32 KB), header incluso"
+                .into(),
+        );
+    }
+    if usize::from(u16::from_le_bytes([object[15], object[16]])) != object.len() - 1 {
+        return Err("Lunghezza dell'oggetto compilato incoerente".into());
+    }
+    Ok(())
 }
 
 /// Blocchi da 128 byte (zero-padded) seguiti dal checksum (somma modulo 256).
@@ -300,6 +312,33 @@ mod tests {
             .contains("troppo grande")
         );
         assert!(f.rx.is_empty());
+    }
+
+    #[test]
+    fn controller_capacity_and_object_length_are_checked_before_io() {
+        let source = format!("PRINT \"{}\"\nEND", "A".repeat(MAX_PROGRAM_BYTES - 25));
+        let object = crate::compiler::compile(&source, "", [0; 6]).unwrap();
+        let img = image(&object).unwrap();
+        assert_eq!(img.len(), MAX_PROGRAM_BYTES);
+        assert_eq!(blocks(&img).len(), MAX_PROGRAM_BYTES / BLOCK);
+
+        let too_large =
+            crate::compiler::compile(&source.replace("PRINT \"", "PRINT \"A"), "", [0; 6]).unwrap();
+        let mut bad_length = crate::compiler::compile("END", "", [0; 6]).unwrap();
+        bad_length[15] = 0;
+        for (object, message) in [(too_large, "32768"), (bad_length, "incoerente")] {
+            let mut f = fake();
+            let error = download(
+                &mut f,
+                &object,
+                "TEST",
+                &mut |_| panic!("Nessun cambio baud per un oggetto invalido"),
+                &mut |_, _| panic!("Nessun trasferimento per un oggetto invalido"),
+            )
+            .unwrap_err();
+            assert!(error.contains(message), "{error}");
+            assert!(f.rx.is_empty());
+        }
     }
 
     #[test]

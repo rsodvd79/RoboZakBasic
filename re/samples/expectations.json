@@ -300,6 +300,86 @@
         "line":  0
     },
     {
+        "name":  "doc_auto_call",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "doc_auto_if",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "doc_auto_label",
+        "error":  8,
+        "line":  2
+    },
+    {
+        "name":  "doc_move_ff",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "doc_move_high",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "doc_move_low",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "doc_move_valid",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "doc_move_zero",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "doc_move24_high",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "doc_move24_zero",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "doc_music_brackets",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "doc_music_controls",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "doc_music_dotted",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "doc_music_manual",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "doc_music_octave",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "doc_music_spaces",
+        "error":  0,
+        "line":  0
+    },
+    {
         "name":  "empty",
         "error":  0,
         "line":  0

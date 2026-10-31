@@ -1,6 +1,55 @@
 use crate::basic::{Expr, Op, Program, const_eval, group_motors};
 use crate::compiler::{CompileError, Tok, lex};
 use serde::Serialize;
+use std::collections::HashMap;
+
+pub(crate) fn check_hardware_operand(name: &str, index: usize, value: i32) -> Result<(), String> {
+    let range = match (name, index) {
+        ("SERVO" | "MOTOR" | "MOTOROFF" | "MOTORIN", 0) => 0..=23,
+        ("SERVO", 1) => 10..=190,
+        ("AD" | "KEYIN", 0) => 0..=7,
+        ("KEYIN", 1) => 1..=16,
+        ("SONAR", 0) => 0..=11,
+        ("SPEED", 0) => 1..=15,
+        ("PWM" | "FPWM", 0) => 0..=2,
+        ("PWM", 1) => 0..=254,
+        ("FPWM", 1) => 1..=5,
+        ("FPWM", 2) => 0..=255,
+        ("IN" | "STATE" | "OUT" | "PULSE" | "TOGGLE", 0) => 0..=39,
+        ("OUT", 1) => 0..=1,
+        ("BYTEIN" | "BYTEOUT", 0) => 0..=4,
+        ("BYTEOUT", 1) => 0..=255,
+        _ => return Ok(()),
+    };
+    if !range.contains(&value) {
+        return Err(format!(
+            "{name}: operando {} fuori intervallo ({}-{}), ricevuto {value}",
+            index + 1,
+            range.start(),
+            range.end()
+        ));
+    }
+    Ok(())
+}
+
+fn validate_expression(expr: &Expr, consts: &HashMap<String, i32>) -> Result<(), String> {
+    match expr {
+        Expr::Call(name, args) => {
+            for (i, arg) in args.iter().enumerate() {
+                validate_expression(arg, consts)?;
+                if let Some(value) = const_eval(arg, consts) {
+                    check_hardware_operand(name, i, value)?;
+                }
+            }
+        }
+        Expr::Bin(_, left, right) => {
+            validate_expression(left, consts)?;
+            validate_expression(right, consts)?;
+        }
+        _ => {}
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct ServoLimit {
@@ -109,6 +158,10 @@ impl Settings {
     }
 
     pub fn check_position(&self, motor: usize, position: i32) -> Result<(), String> {
+        if motor >= 24 {
+            return Err("Motore MR-C3024 fuori intervallo (0-23)".into());
+        }
+        check_hardware_operand("SERVO", 1, position)?;
         if let Some(limit) = self.limits.get(motor).filter(|limit| limit.declared)
             && (position < i32::from(limit.min) || position > i32::from(limit.max))
         {
@@ -122,26 +175,47 @@ impl Settings {
 
     // Le direttive non sono bytecode firmware: non scaricare movimenti non verificabili.
     pub fn validate(&self, program: &Program) -> Result<(), CompileError> {
-        if !self.has_limits() {
-            return Ok(());
-        }
         for (i, op) in program.ops.iter().enumerate() {
-            let Op::Cmd(name, args) = op else { continue };
             let error = |msg: String, unsupported| CompileError {
                 line: program.lines[i],
                 msg,
                 unsupported,
             };
+            let expressions: Vec<&Expr> = match op {
+                Op::Assign(_, expr)
+                | Op::AssignBit(_, _, expr)
+                | Op::JmpFalse(expr, _)
+                | Op::On { expr, .. } => vec![expr],
+                Op::For { from, to, step, .. } => {
+                    let mut exprs = vec![from, to];
+                    exprs.extend(step.iter());
+                    exprs
+                }
+                Op::Cmd(_, args) => args.iter().flatten().collect(),
+                _ => Vec::new(),
+            };
+            for expr in expressions {
+                validate_expression(expr, &program.consts).map_err(|msg| error(msg, false))?;
+            }
+            let Op::Cmd(name, args) = op else { continue };
+            for (index, expr) in args.iter().enumerate() {
+                if let Some(value) = expr.as_ref().and_then(|e| const_eval(e, &program.consts)) {
+                    check_hardware_operand(name, index, value).map_err(|msg| error(msg, false))?;
+                }
+            }
             if name == "SERVO" {
                 let motor = args
                     .first()
                     .and_then(Option::as_ref)
                     .and_then(|e| const_eval(e, &program.consts));
                 let Some(motor) = motor else {
-                    return Err(error(
-                        "$LIMIT: motore dinamico non verificabile per il download".into(),
-                        true,
-                    ));
+                    if self.has_limits() {
+                        return Err(error(
+                            "$LIMIT: motore dinamico non verificabile per il download".into(),
+                            true,
+                        ));
+                    }
+                    continue;
                 };
                 if self
                     .limits
@@ -179,8 +253,12 @@ impl Settings {
                             .map_err(|msg| error(msg, false))?;
                     }
                 }
-            } else if matches!(name.as_str(), "ACTION" | "FUNC" | "POKE" | "ROMPOKE")
-                || (name == "AIMOTOR" && args.first() == Some(&Some(Expr::Var("INIT".into()))))
+            } else if self.has_limits()
+                && (matches!(
+                    name.as_str(),
+                    "ACTION" | "FUNC" | "POKE" | "ROMPOKE" | "AUTO"
+                ) || (name == "AIMOTOR"
+                    && args.first() == Some(&Some(Expr::Var("INIT".into())))))
             {
                 return Err(error(
                     format!(
@@ -249,6 +327,7 @@ mod tests {
             "CONST P = 150\nSERVO 0,P\nCONST P = 50",
             "CONST M = 0\nSERVO M,150\nCONST M = 1",
             "CONST INIT = 50\nAIMOTOR INIT",
+            "GOTO AUTO",
         ] {
             let p = crate::basic::parse(body, &kw).unwrap();
             assert!(settings.validate(&p).is_err(), "{body}");

@@ -1,0 +1,3 @@
+GOTO AUTO
+AUTO:
+END

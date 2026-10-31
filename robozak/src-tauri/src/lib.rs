@@ -174,14 +174,17 @@ fn check_program(src: &str) -> Result<(), Diagnostic> {
 fn compile_program(src: &str, name: &str, stamp: [u8; 6]) -> Result<Vec<u8>, Diagnostic> {
     let settings = program_settings(src)?;
     let object = compiler::compile(src, name, stamp).map_err(Diagnostic::from)?;
-    if settings.has_limits() {
-        let program = basic::parse(src, &parse_keywords(KEYWORDS)).map_err(|e| Diagnostic {
-            line: e.line,
-            msg: e.msg,
-            unsupported: true,
-        })?;
-        settings.validate(&program).map_err(Diagnostic::from)?;
-    }
+    download::validate_object(&object).map_err(|msg| Diagnostic {
+        line: 0,
+        msg,
+        unsupported: false,
+    })?;
+    let program = basic::parse(src, &parse_keywords(KEYWORDS)).map_err(|e| Diagnostic {
+        line: e.line,
+        msg: e.msg,
+        unsupported: true,
+    })?;
+    settings.validate(&program).map_err(Diagnostic::from)?;
     Ok(object)
 }
 
@@ -210,6 +213,7 @@ fn simulate(src: &str, max_steps: usize) -> Result<Simulation, Diagnostic> {
             msg: if e.msg.is_ascii()
                 && (e.msg.contains("simulat")
                     || e.msg.contains("Motore")
+                    || e.msg.contains("fuori intervallo")
                     || e.msg.starts_with("Assegnazione di bit"))
             {
                 e.msg
@@ -459,5 +463,70 @@ mod tests {
         assert_eq!(e.line, 1);
         assert!(e.unsupported);
         assert!(validate_live_servo("'$DEVICE MRC2000", 0, 100).is_err());
+    }
+
+    #[test]
+    fn hardware_bounds_are_shared_without_limit_directives() {
+        for src in [
+            "SERVO 24,100",
+            "SERVO 0,255",
+            "SPEED 16",
+            "MOTOR 24",
+            "MOVE G6E,100",
+            "PWM 3,127",
+            "FPWM 0,6,127",
+            "DIM A AS BYTE\nA=AD(8)",
+            "DIM A AS BYTE\nA=KEYIN(8,16)",
+            "DIM A AS BYTE\nA=KEYIN(0,17)",
+            "DIM A AS BYTE\nA=SONAR(12)",
+            "DIM A AS BYTE\nIF AD(8)=1 THEN A=1",
+            "OUT 0,AD(8)",
+            "CONST P=8\nDIM A AS BYTE\nA=AD(P)\nCONST P=0",
+        ] {
+            assert!(compiler::compile(src, "", [0; 6]).is_ok(), "{src}");
+            let check = check_program(src).unwrap_err();
+            let sim = simulate(src, 10).err().unwrap();
+            let download = compile_program(src, "", [0; 6]).unwrap_err();
+            assert_eq!(check.msg, sim.msg);
+            assert_eq!(check.msg, download.msg);
+            assert_eq!(check.line, download.line);
+            assert!(
+                check.msg.contains("fuori intervallo"),
+                "{src}: {}",
+                check.msg
+            );
+        }
+        for src in [
+            "SERVO 0,10\nSERVO 23,190\nSPEED 15\nPWM 2,254\nFPWM 2,5,255\nEND",
+            "DIM A AS BYTE\nA=100\nSERVO 0,A\nEND",
+            "DIM A AS BYTE\nA=AD(7)\nA=KEYIN(7,16)\nA=SONAR(11)\nEND",
+            "GOTO AUTO\nEND",
+            "MOTOR ALLON\nMOTOROFF ALLOFF\nEND",
+        ] {
+            check_program(src).unwrap();
+        }
+        for (motor, position) in [(24, 100), (0, 9), (0, 191)] {
+            assert!(validate_live_servo("", motor, position).is_err());
+        }
+    }
+
+    #[test]
+    fn controller_capacity_is_shared_by_check_simulation_and_download() {
+        let source = format!(
+            "PRINT \"{}\"\nEND",
+            "A".repeat(download::MAX_PROGRAM_BYTES - 25)
+        );
+        check_program(&source).unwrap();
+        assert_eq!(
+            compile_program(&source, "", [0; 6]).unwrap().len() - 1,
+            download::MAX_PROGRAM_BYTES
+        );
+        let oversized = source.replace("PRINT \"", "PRINT \"A");
+        let check = check_program(&oversized).unwrap_err();
+        let sim = simulate(&oversized, 10).err().unwrap();
+        let download = compile_program(&oversized, "", [0; 6]).unwrap_err();
+        assert_eq!(check.msg, sim.msg);
+        assert_eq!(check.msg, download.msg);
+        assert!(check.msg.contains("32768"));
     }
 }

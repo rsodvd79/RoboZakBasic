@@ -1,0 +1,2 @@
+MOVE G6A,255
+END

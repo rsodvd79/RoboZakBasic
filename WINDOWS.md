@@ -4,9 +4,11 @@ Contesto: riscrittura in Rust/Tauri v2 di **roboBASIC v2.72** (IDE VB6 per Robon
 Leggi prima `re/NOTES.md` (stato del reverse engineering) e `README`/codice in `robozak/`.
 
 ## Stato
-- Compilatore MR-C3024 in `compiler.rs`: 274 campioni positivi e 78 negativi verificati contro l'originale; inventario e righe degli errori in `re\samples\expectations.json`.
+- Compilatore MR-C3024 in `compiler.rs`: 281 campioni positivi e 87 negativi verificati contro l'originale; inventario e righe degli errori in `re\samples\expectations.json`.
 - Forme del manuale v2.10 aggiunte: PULSE, ZERO, INIT, POS/MOVEPOS, RUN, KEYIN a due argomenti, NOT(operando), basi numeriche, %, bit, PRINT/FORMAT, modalita' e gruppi AIMOTOR, baud seriali mancanti. MOVEPOS e' espanso in MOVE verificati, non in opcode sconosciuti.
 - `directives.rs` valida DEVICE e LIMIT per MR-C3024. I limiti sono locali agli angoli comandati, non protezioni firmware; con LIMIT si rifiutano movimenti dinamici e operazioni indirette non verificabili. Aggiornare gli slider non invia comandi.
+- MOVE/MOVE24 rifiutano angoli espliciti fuori 10-190; MUSIC supporta spazi, durata persistente, O34, M/H/L e parentesi quadre. GOTO AUTO usa il bytecode originale, viene rifiutato con LIMIT e interrompe il simulatore senza inventare il template.
+- Operandi hardware statici e limite prudenziale di 32 KB (immagine con header) sono condivisi da verifica, simulazione e download, anche senza LIMIT. Il simulatore controlla i valori dinamici; il compilatore evita il wrap degli indirizzi/lunghezze a 16 bit. Questi controlli sono intenzionalmente piu' restrittivi dell'OCX.
 - Verifica editor e simulazione usano il dialetto del compilatore. Il simulatore (`basic.rs`) ha movimenti istantanei, segnala effetti hardware non riprodotti e non inventa letture dei sensori.
 - Protocollo di download e controllo live in `download.rs`, sessione seriale e diagnostica Tauri in `lib.rs`. Eco servo validato; errori di trasporto e tentativi di download chiudono la sessione.
 - Gli originali `rbv2.ocx` e `rbv2.exe` sono **VB6 codice nativo x86**, non p-code. Il metodo efficace è l'OCX come black box più catture seriali, non una nuova decompilazione generale.

@@ -598,8 +598,13 @@ impl Compiler {
             }
             "GOTO" => {
                 let l = self.label_name(c)?;
-                self.out.push(0xC4);
-                self.jump_label(&l);
+                if l == "AUTO" {
+                    self.out
+                        .extend_from_slice(&[0xD0, 0x15, 0x40, 0x10, 0x00, 0xC4, 0x28, 0x27]);
+                } else {
+                    self.out.push(0xC4);
+                    self.jump_label(&l);
+                }
             }
             "GOSUB" => {
                 let l = self.label_name(c)?;
@@ -732,12 +737,8 @@ impl Compiler {
                 if kw != "MOVE24" {
                     self.comma(c)?;
                 }
-                let vals = if matches!(kw.as_str(), "POS" | "ZERO" | "INIT") {
-                    let range = if kw == "ZERO" { 80..=120 } else { 10..=190 };
-                    self.values_range(c, count as usize, range)?
-                } else {
-                    self.values(c, count as usize)?
-                };
+                let range = if kw == "ZERO" { 80..=120 } else { 10..=190 };
+                let vals = self.values_range(c, count as usize, range)?;
                 let opcode = match kw.as_str() {
                     "POS" => 0xB1,
                     "ZERO" => 0xB3,
@@ -1077,8 +1078,8 @@ impl Compiler {
             msg: "연주 문자열이 잘못되었습니다.".into(),
             unsupported: false,
         };
-        let (mut octave, mut default_len) = (3i32, 24i32);
-        let (mut pending_len, mut sharp) = (None::<i32>, 0i32);
+        let (mut octave, mut duration) = (3i32, 24f64);
+        let mut sharp = 0i32;
         let b = s.to_ascii_uppercase().into_bytes();
         let mut i = 0;
         let mut out = Vec::new();
@@ -1094,31 +1095,29 @@ impl Compiler {
             i += 1;
             match ch {
                 b'O' => {
-                    octave = number(&mut i)
-                        .filter(|o| (1..=7).contains(o))
-                        .ok_or_else(bad)?
+                    let digit = b
+                        .get(i)
+                        .filter(|d| (b'0'..=b'7').contains(d))
+                        .ok_or_else(bad)?;
+                    octave = i32::from(*digit - b'0');
+                    i += 1;
                 }
-                b'L' => {
-                    default_len = 96
-                        / number(&mut i)
-                            .filter(|n| (1..=96).contains(n))
-                            .ok_or_else(bad)?;
-                    octave = 2;
-                }
+                b'L' | b'<' => octave -= 1,
                 b'0'..=b'9' => {
                     i -= 1;
-                    pending_len = Some(
-                        96 / number(&mut i)
-                            .filter(|n| (1..=96).contains(n))
-                            .ok_or_else(bad)?,
-                    );
+                    let n = number(&mut i)
+                        .filter(|n| (0..=96).contains(n))
+                        .ok_or_else(bad)?;
+                    duration = 96.0 / f64::from(n.max(1));
                 }
-                b'>' => octave += 1,
-                b'<' => octave -= 1,
+                b'H' | b'>' => octave += 1,
+                b'M' => octave = 3,
+                b'[' => duration /= 1.5,
+                b']' => duration *= 1.5,
                 b'#' | b'+' => sharp = 1,
-                b'-' => sharp = -1,
-                b'H' => {}
-                b'A'..=b'G' | b'P' => {
+                b'$' | b'-' => sharp = -1,
+                ch if ch.is_ascii_whitespace() => {}
+                b'A'..=b'G' | b'P' | b',' => {
                     let n = match ch {
                         b'C' => 0,
                         b'D' => 2,
@@ -1130,7 +1129,10 @@ impl Compiler {
                         _ => -1,
                     };
                     let note = if n < 0 { 0x7F } else { octave * 12 + n + sharp };
-                    out.push(pending_len.take().unwrap_or(default_len));
+                    if !duration.is_finite() || !(1.0..256.0).contains(&duration) {
+                        return Err(bad());
+                    }
+                    out.push(duration as i32);
                     out.push(note);
                     sharp = 0;
                 }
@@ -1189,6 +1191,9 @@ fn compile_inner(src: &str, name: &str, stamp: [u8; 6]) -> Res<Vec<u8>> {
         c.line = line;
         if toks.len() == 2 && matches!(toks[1], Tok::Op(ref o) if o == ":") {
             if let Tok::Id(l) = &toks[0] {
+                if l == "AUTO" {
+                    return c.err("AUTO e' riservato al template firmware");
+                }
                 let h = c.here();
                 if c.labels.insert(l.clone(), h).is_some() {
                     return c.err("레이블이 중복되었습니다.");
@@ -1198,6 +1203,10 @@ fn compile_inner(src: &str, name: &str, stamp: [u8; 6]) -> Res<Vec<u8>> {
         }
         let mut cur = Cur { toks, pos: 0 };
         c.statement(&mut cur)?;
+        // Riservare header e salto finale prima che un indirizzo possa andare in wrap.
+        if BODY_BASE + c.out.len() + 3 > usize::from(u16::MAX) + 1 {
+            return c.err("Programma troppo grande per gli indirizzi a 16 bit");
+        }
         if !cur.done() {
             return c.err("형식이 맞지 않습니다.");
         }
@@ -1354,6 +1363,22 @@ mod tests {
     #[test]
     fn undefined_label_is_error() {
         assert!(compile("GOTO X\r\n", "", [0; 6]).is_err());
+    }
+
+    #[test]
+    fn oversized_programs_never_wrap_header_lengths_or_jump_addresses() {
+        let source = format!("PRINT \"{}\"\nEND", "A".repeat(usize::from(u16::MAX) - 25));
+        let object = compile(&source, "", [0; 6]).unwrap();
+        assert_eq!(object.len(), usize::from(u16::MAX) + 1);
+        assert_eq!(u16::from_le_bytes([object[15], object[16]]), u16::MAX);
+        for source in [
+            source.replace("PRINT \"", "PRINT \"A"),
+            format!("{}END", "DELAY 100\n".repeat(17000)),
+        ] {
+            let e = compile(&source, "", [0; 6]).unwrap_err();
+            assert!(e.msg.contains("16 bit"));
+            assert!(e.line > 0);
+        }
     }
 
     #[test]

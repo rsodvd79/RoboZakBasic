@@ -1,0 +1,4 @@
+MUSIC "[C[DE]FG]A"
+MUSIC "[2CD]E"
+MUSIC "2[CD]E"
+END
