@@ -34,6 +34,9 @@ pub fn image(object: &[u8]) -> Result<Vec<u8>, String> {
     if object.len() < 17 {
         return Err("Oggetto compilato troppo corto".into());
     }
+    if object.len() - 1 > usize::from(u16::MAX) {
+        return Err("Oggetto compilato troppo grande per il protocollo".into());
+    }
     let mut v = vec![0xFF];
     v.extend_from_slice(&object[1..8]);
     v.extend_from_slice(&object[9..]);
@@ -70,6 +73,32 @@ pub fn controller_info<P: Read + Write>(p: &mut P) -> Result<[u8; 6], String> {
 
 pub const FAST_BAUD: u32 = 115_200;
 
+pub fn supported_controller(info: [u8; 6]) -> Result<(), String> {
+    // Tipo 02 osservato sul MR-C3024 reale; gli altri tipi non sono verificati.
+    if info[0] != 2 {
+        return Err(format!(
+            "Controller non supportato (tipo {:02X}); richiesto MR-C3024",
+            info[0]
+        ));
+    }
+    Ok(())
+}
+
+pub fn servo<P: Read + Write>(p: &mut P, motor: u8, pos: u8) -> Result<(), String> {
+    if motor >= 24 || !(10..=190).contains(&pos) {
+        return Err("Servo fuori intervallo: motore 0-23, posizione 10-190".into());
+    }
+    let cmd = [0xE6, motor, pos];
+    p.write_all(&cmd).map_err(|e| e.to_string())?;
+    let mut echo = [0; 3];
+    p.read_exact(&mut echo)
+        .map_err(|e| format!("Lettura eco servo: {e}"))?;
+    if echo != cmd {
+        return Err(format!("Eco servo errato: {echo:02X?}"));
+    }
+    Ok(())
+}
+
 /// `title`: caratteri del nome da mostrare sul controller (8, riempiti con spazi).
 pub fn download<P: Read + Write>(
     p: &mut P,
@@ -79,7 +108,7 @@ pub fn download<P: Read + Write>(
     progress: &mut dyn FnMut(usize, usize),
 ) -> Result<(), String> {
     let img = image(object)?;
-    controller_info(p)?;
+    supported_controller(controller_info(p)?)?;
     // F7 aa bb + byte nullo: il controller risponde con un valore (non un eco)
     for cmd in [[0xF7, 0xF2, 0x04], [0xF7, 0xF3, 0x04]] {
         send_echo(p, &cmd)?;
@@ -119,26 +148,71 @@ mod tests {
     #[test]
     #[ignore]
     fn real_beep() {
-        let name = std::env::var("ROBO_PORT").unwrap_or("COM1".into());
+        let name = std::env::var("ROBO_PORT").expect("Impostare ROBO_PORT esplicitamente");
+        assert_eq!(
+            std::env::var("ROBO_ALLOW_WRITE").as_deref(),
+            Ok("YES"),
+            "Scrittura sul robot: impostare ROBO_ALLOW_WRITE=YES dopo il consenso"
+        );
         let mut p = serialport::new(name, 9_600)
             .timeout(std::time::Duration::from_millis(2000))
             .open()
             .unwrap();
-        let obj = crate::compiler::compile("BEEP\r\nEND\r\n", "BEEPTEST", [26, 10, 26, 18, 0, 0]).unwrap();
-        let r = download(&mut p, &obj, "BEEPTEST", &mut |p| p.set_baud_rate(FAST_BAUD).map_err(|e| e.to_string()), &mut |n, t| println!("blocco {n}/{t}"));
+        let obj = crate::compiler::compile("BEEP\r\nEND\r\n", "BEEPTEST", [26, 10, 26, 18, 0, 0])
+            .unwrap();
+        let r = download(
+            &mut p,
+            &obj,
+            "BEEPTEST",
+            &mut |p| p.set_baud_rate(FAST_BAUD).map_err(|e| e.to_string()),
+            &mut |n, t| println!("blocco {n}/{t}"),
+        );
         println!("{r:?}");
         r.unwrap();
+    }
+
+    #[test]
+    #[ignore]
+    fn real_music() {
+        let name = std::env::var("ROBO_PORT").expect("Impostare ROBO_PORT esplicitamente");
+        assert_eq!(
+            std::env::var("ROBO_ALLOW_WRITE").as_deref(),
+            Ok("YES"),
+            "Scrittura sul robot: impostare ROBO_ALLOW_WRITE=YES dopo il consenso"
+        );
+        let mut p = serialport::new(name, 9_600)
+            .timeout(std::time::Duration::from_millis(2000))
+            .open()
+            .unwrap();
+        let obj = crate::compiler::compile(
+            "MUSIC \"CDE\"\r\nEND\r\n",
+            "MUSICTST",
+            [31, 10, 26, 0, 0, 0],
+        )
+        .unwrap();
+        download(
+            &mut p,
+            &obj,
+            "MUSICTST",
+            &mut |p| p.set_baud_rate(FAST_BAUD).map_err(|e| e.to_string()),
+            &mut |n, t| println!("blocco {n}/{t}"),
+        )
+        .unwrap();
+        println!("MUSIC + END inviato; sessione chiusa al termine del test, nessun comando servo");
     }
 
     // Sola lettura sul robot reale: ROBO_PORT=COM1 cargo test real_info -- --ignored --nocapture
     #[test]
     #[ignore]
     fn real_info() {
-        let name = std::env::var("ROBO_PORT").unwrap_or("COM1".into());
-        let mut p = serialport::new(name, 9_600).timeout(std::time::Duration::from_millis(1000))
+        let name = std::env::var("ROBO_PORT").expect("Impostare ROBO_PORT esplicitamente");
+        let mut p = serialport::new(name, 9_600)
+            .timeout(std::time::Duration::from_millis(1000))
             .open()
             .unwrap();
-        println!("{:02X?}", controller_info(&mut p));
+        let info = controller_info(&mut p).unwrap();
+        supported_controller(info).unwrap();
+        println!("{info:02X?}");
     }
 
     // Controller finto: eco dei comandi, `3F` -> `21`, 129 byte di blocco assorbiti senza risposta.
@@ -148,6 +222,8 @@ mod tests {
         rx: Vec<u8>,
         pending_data: usize,
         reading_info: bool,
+        block_reply: u8,
+        echo_error: bool,
     }
 
     impl Read for Fake {
@@ -176,10 +252,10 @@ mod tests {
                         self.reading_info = false;
                     }
                 } else if b == 0x3F {
-                    self.out.push_back(0x21);
+                    self.out.push_back(self.block_reply);
                     self.pending_data = 129;
                 } else {
-                    self.out.push_back(b);
+                    self.out.push_back(if self.echo_error { b ^ 1 } else { b });
                     if b == 0xF0 {
                         self.reading_info = true;
                     }
@@ -210,25 +286,141 @@ mod tests {
     }
 
     #[test]
+    fn oversized_objects_are_rejected_before_serial_commands() {
+        let mut f = fake();
+        assert!(
+            download(
+                &mut f,
+                &vec![0; 65_537],
+                "TEST",
+                &mut |_| Ok(()),
+                &mut |_, _| {}
+            )
+            .unwrap_err()
+            .contains("troppo grande")
+        );
+        assert!(f.rx.is_empty());
+    }
+
+    #[test]
     fn download_sequence() {
         let mut f = Fake {
             out: VecDeque::new(),
-            info: VecDeque::from(vec![4, 2, 1, 0, 0, 0]),
+            info: VecDeque::from(vec![2, 2, 7, 0x40, 0xBE, 5]),
             rx: vec![],
             pending_data: 0,
             reading_info: false,
+            block_reply: 0x21,
+            echo_error: false,
         };
-        let obj = crate::compiler::compile("DIM A AS BYTE\r\nA = 1\r\nDELAY 100\r\nEND\r\n", "t", [26, 10, 26, 15, 4, 31]).unwrap();
+        let obj = crate::compiler::compile(
+            "DIM A AS BYTE\r\nA = 1\r\nDELAY 100\r\nEND\r\n",
+            "t",
+            [26, 10, 26, 15, 4, 31],
+        )
+        .unwrap();
         let mut steps = vec![];
-        download(&mut f, &obj, "d1.bas", &mut |_| Ok(()), &mut |n, t| steps.push((n, t))).unwrap();
+        download(&mut f, &obj, "d1.bas", &mut |_| Ok(()), &mut |n, t| {
+            steps.push((n, t))
+        })
+        .unwrap();
         assert_eq!(steps, vec![(1, 1)]);
         assert_eq!(&f.rx[..7], &[0xF0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(&f.rx[7..15], &[0xF7, 0xF2, 4, 0, 0xF7, 0xF3, 4, 0]);
         assert_eq!(f.rx.iter().filter(|&&b| b == 0xB4).count(), 8);
         assert_eq!(f.rx.len(), 7 + 9 + 48 + 3 + 1 + 129);
+        let title: Vec<_> = f.rx[16..64].chunks(6).map(|c| c[4]).collect();
+        assert_eq!(&title, b"d1.bas  ");
+    }
+
+    fn fake() -> Fake {
+        Fake {
+            out: VecDeque::new(),
+            info: VecDeque::from([2, 2, 7, 0x40, 0xBE, 5]),
+            rx: vec![],
+            pending_data: 0,
+            reading_info: false,
+            block_reply: 0x21,
+            echo_error: false,
+        }
+    }
+
+    #[test]
+    fn servo_requires_complete_matching_echo() {
+        let mut f = fake();
+        servo(&mut f, 23, 190).unwrap();
+        assert_eq!(f.rx, [0xE6, 23, 190]);
+        assert!(f.out.is_empty());
+        f.echo_error = true;
+        assert!(servo(&mut f, 0, 100).unwrap_err().contains("Eco"));
+        let mut empty = std::io::Cursor::new(Vec::new());
+        assert!(servo(&mut empty, 0, 100).is_err());
+        for (m, p) in [(24, 100), (0, 9), (0, 191)] {
+            let mut f = fake();
+            assert!(servo(&mut f, m, p).is_err());
+            assert!(f.rx.is_empty());
+        }
+    }
+
+    #[test]
+    fn rejects_unverified_controller_and_bad_block() {
+        let obj = crate::compiler::compile("END", "TEST", [0; 6]).unwrap();
+        let mut f = fake();
+        f.info[0] = 4;
+        assert!(
+            download(&mut f, &obj, "TEST", &mut |_| Ok(()), &mut |_, _| {})
+                .unwrap_err()
+                .contains("non supportato")
+        );
+        assert_eq!(f.rx.len(), 7);
+        let mut f = fake();
+        f.block_reply = 0x45;
+        assert!(
+            download(&mut f, &obj, "TEST", &mut |_| Ok(()), &mut |_, _| {})
+                .unwrap_err()
+                .contains("interrotto")
+        );
+        let mut f = fake();
+        assert!(
+            download(
+                &mut f,
+                &obj,
+                "TEST",
+                &mut |_| Err("Cambio baud fallito".into()),
+                &mut |_, _| {}
+            )
+            .unwrap_err()
+            .contains("baud")
+        );
+        assert_eq!(f.rx.last(), Some(&0xEC));
+    }
+
+    #[test]
+    fn multiple_blocks_follow_baud_switch() {
+        let src = "DELAY 100\n".repeat(80) + "END";
+        let obj = crate::compiler::compile(&src, "TEST", [0; 6]).unwrap();
+        let expected = blocks(&image(&obj).unwrap());
+        let mut f = fake();
+        let mut switched = false;
+        let mut progress = vec![];
+        download(
+            &mut f,
+            &obj,
+            "TEST",
+            &mut |f| {
+                assert_eq!(f.rx.last(), Some(&0xEC));
+                switched = true;
+                Ok(())
+            },
+            &mut |n, t| progress.push((n, t)),
+        )
+        .unwrap();
+        assert!(switched);
+        assert_eq!(progress.len(), expected.len());
+        assert_eq!(progress.last(), Some(&(expected.len(), expected.len())));
+        for (received, block) in f.rx[67..].chunks(130).zip(expected) {
+            assert_eq!(received[0], 0x3F);
+            assert_eq!(&received[1..], block);
+        }
     }
 }
-
-
-
-

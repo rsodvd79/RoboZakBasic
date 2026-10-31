@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = 5 % 2
+END

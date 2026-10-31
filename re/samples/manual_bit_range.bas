@@ -1,0 +1,3 @@
+DIM A AS INTEGER
+A.16 = 1
+END

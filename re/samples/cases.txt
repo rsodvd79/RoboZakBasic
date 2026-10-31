@@ -1,4 +1,36 @@
 empty = END
+manual_pulse = DIM A AS BYTE|PULSE 3|PULSE A|END
+manual_zero = ZERO G6A,80,,100,,120,90|END
+manual_zero_low = ZERO G6A,79,100,100,100,100,100|END
+manual_zero_high = ZERO G6A,121,100,100,100,100,100|END
+manual_zero_explicit_zero = ZERO G6A,0,100,100,100,100,100|END
+manual_init = INIT G6B,10,90,,100,180,190|END
+manual_init_range = INIT G6A,191,100,100,100,100,100|END
+manual_init_explicit_zero = INIT G6A,0,100,100,100,100,100|END
+manual_pos_inline = END|P1: POS G6A,100,,120
+manual_pos_range = POS G6A,255,100,100,100,100,100|END
+manual_pose_expanded = MOVE G6A,100,,120|MOVE G6B,90,100,110|END|P1: POS G6A,100,,120|POS G6B,90,100,110
+manual_pose_if_expanded = DIM A AS BYTE|A=1|IF A=1 THEN|MOVE G6A,100,,120|MOVE G6B,90,100,110|ENDIF|END|P1: POS G6A,100,,120|POS G6B,90,100,110
+manual_keyin = DIM A AS BYTE|DIM B AS INTEGER|A = KEYIN(0,16)|B = KEYIN(A,8)|END
+manual_run = RUN|END
+manual_print_codes = PRINT "OK",65,255,13,10|END
+manual_print_zero = PRINT 0|END
+manual_formats = DIM A AS BYTE|DIM B AS INTEGER|PRINT FORMAT(A,HEX)|PRINT FORMAT(B,DEC,5)|PRINT FORMAT(B,BIN,16)|END
+manual_format_width = DIM A AS BYTE|PRINT FORMAT(A,DEC,255)|END
+manual_format_range = DIM A AS BYTE|PRINT FORMAT(A,DEC,256)|END
+manual_format_sequence = DIM A AS BYTE|PRINT "X",FORMAT(A,HEX)|END
+manual_literal_bases = DIM A AS BYTE|A = &H3D + &B10 * &O3|END
+manual_modulo = DIM A AS BYTE|A = 5 % 2|END
+manual_bits = DIM A AS INTEGER|DIM B AS BYTE|CONST TOP = 15|A.TOP = 1|B.7 = A.15|A.0 = B.7|END
+manual_bit_range = DIM A AS INTEGER|A.16 = 1|END
+manual_not = DIM A AS INTEGER|DIM B AS BYTE|A = 65535|B = 1|A = NOT(A)|B = NOT(B)|END
+manual_char = DIM A AS BYTE|A = "AB"|END
+manual_aimotor_modes = AIMOTOR SETON|AIMOTOR INIT|AIMOTOR SETOFF|END
+manual_aimotor_groups = AIMOTOR G6A|AIMOTOROFF G6B|END
+manual_aimotor_all = AIMOTOR ALLON|AIMOTOROFF ALLOFF|END
+manual_aimotor_invalid_mode = AIMOTOROFF ALLON|END
+manual_motor_all = MOTOR ALLON|MOTOROFF ALLOFF|END
+manual_serial_rates = DIM A AS BYTE|ETX 14400,1|ETX 28800,1|ETX 76800,1|ETX 230400,1|ERX 230400,A,L1|L1:|END
 end2 = END|END
 delay100 = DELAY 100|END
 delay200 = DELAY 200|END

@@ -2,7 +2,6 @@
 extracted/
 chm/
 roboBASIC_v272/
-*.pdf
 re/*.txt
 re/*.c
 node_modules/

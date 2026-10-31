@@ -1,7 +1,27 @@
-# Tauri + Vanilla TS
+# RoboZak: applicazione Windows
 
-This template should help get you started developing with Tauri in vanilla HTML, CSS and Typescript.
+Frontend TypeScript/Vite e backend Rust/Tauri v2 per roboBASIC su MR-C3024. Requisiti, protocollo e limiti sono nel [README principale](https://github.com/rsodvd79/RoboZakBasic/blob/HEAD/README.md) e nelle [note di interoperabilità](https://github.com/rsodvd79/RoboZakBasic/blob/HEAD/re/NOTES.md).
 
-## Recommended IDE Setup
+Da questa cartella:
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+```powershell
+npm install
+npm run tauri dev
+npm test
+npm run build
+npm run tauri build -- --no-bundle
+cargo test --manifest-path .\src-tauri\Cargo.toml --lib
+cargo fmt --manifest-path .\src-tauri\Cargo.toml -- --check
+```
+
+`src\main.ts` contiene editor, console, help e controllo degli slider; `src\main.test.mjs` verifica diagnostica e concorrenza con il test runner Node, senza robot o nuove dipendenze.
+
+L'interfaccia ha un layout adattivo a tre pannelli, editor con numeri di riga e posizione del cursore, stato seriale visibile e schede console/guida accessibili da tastiera. La vista servo alterna diagramma ed elenco con valori numerici sincronizzati, distinguendo simulazione e controllo live. La finestra iniziale è 1280 × 820; su larghezze inferiori i pannelli si dispongono su più righe.
+
+Backend in `src-tauri\src`: `compiler.rs` compila e valida, `basic.rs` simula il sottoinsieme logico, `directives.rs` gestisce DEVICE e LIMIT, `download.rs` gestisce il protocollo, `lib.rs` espone i comandi Tauri e invalida le sessioni seriali in errore.
+
+Le forme aggiunte dal confronto con il manuale v2.10 sono elencate nel README principale. MOVEPOS e' tradotto in MOVE con bytecode verificato; INTEGER e' unsigned, i confronti precedono le combinazioni logiche e gli angoli MOVE omessi non modificano i servo. NOT usa parentesi e KEYIN richiede due argomenti.
+
+LIMIT aggiorna i controlli senza movimenti automatici e viene ricontrollato nel backend. Verifica/download rifiutano angoli fuori limite e operazioni dinamiche/indirette non verificabili; non viene installato un limite firmware. Il corpus e' di 352 sorgenti (274 positivi e 78 negativi), senza certificare l'intero manuale o la fedelta' fisica del simulatore.
+
+La simulazione usa il dialetto compilabile, ma non riproduce tutta la fisica o gli effetti hardware: avvisi e interruzioni sono visibili nella console. Dopo un download la connessione viene chiusa e richiede una nuova identificazione del controller. Non eseguire test reali, download o movimenti senza porta e consenso concordati; i test hardware restano ignorati di default.

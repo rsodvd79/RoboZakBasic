@@ -4,33 +4,127 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RoboZak</title>
+    <meta name="color-scheme" content="dark" />
+    <title>RoboZak Basic</title>
     <script type="module" src="/src/main.ts" defer></script>
   </head>
   <body>
-    <header>
-      <strong>RoboZak</strong>
-      <select id="robot"><option value="robonova">Robonova</option><option value="roki">Roki</option></select>
-      <button id="check">Verifica</button>
-      <button id="run">Esegui (simulazione)</button>
-      <button id="download">Scarica sul robot</button>
-      <span class="sp"></span>
-      <select id="port"></select>
-      <button id="refresh">Aggiorna porte</button>
-      <button id="connect">Connetti</button>
-      <button id="tab-help">Aiuto</button>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">RZ</span>
+        <div><h1>RoboZak <span>Basic</span></h1><p>Il tuo laboratorio di robotica</p></div>
+      </div>
+      <div class="connection-tools" aria-label="Connessione al robot">
+        <span id="connection-state" class="connection-state" data-state="offline" role="status">Non connesso</span>
+        <label class="port-field"><span>Porta seriale</span><select id="port"><option value="">Ricerca porte...</option></select></label>
+        <button id="refresh" class="icon-button" title="Aggiorna porte seriali" aria-label="Aggiorna porte seriali">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1" /></svg>
+        </button>
+        <button id="connect" class="button button-connect" disabled>Connetti</button>
+      </div>
     </header>
-    <main>
-      <section class="editor"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false"></textarea></section>
-      <section class="robot" id="robot-view"><div id="stage"></div></section>
-      <aside>
-        <div id="console"></div>
-        <div id="help" hidden>
-          <input id="help-q" placeholder="Cerca comando…" />
-          <ul id="help-list"></ul>
-          <article id="help-body"></article>
+
+    <nav class="action-bar" aria-label="Azioni del programma">
+      <div class="workspace-label"><span class="eyebrow">WORKSPACE</span><strong id="source-name" title="Sorgente non ancora salvato">Senza titolo.bas</strong></div>
+      <div class="source-actions" aria-label="Gestione del sorgente">
+        <button id="source-new" class="button button-secondary" title="Nuovo sorgente (Ctrl+N)">Nuovo</button>
+        <button id="source-open" class="button button-secondary" title="Carica sorgente (Ctrl+O)">Carica</button>
+        <button id="source-save" class="button button-secondary" title="Salva sorgente (Ctrl+S)">Salva</button>
+        <button id="source-save-as" class="button button-secondary" title="Salva con nome (Ctrl+Shift+S)">Salva con nome</button>
+        <button id="source-recent" class="button button-secondary" title="Riapri uno degli ultimi 20 sorgenti" aria-haspopup="dialog" aria-controls="recent-sources-dialog">Recenti</button>
+      </div>
+      <div class="program-actions">
+        <button id="check" class="button button-secondary" title="Verifica la compilazione per MR-C3024">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>Verifica
+        </button>
+        <button id="run" class="button button-primary" title="Esegui una simulazione locale, senza muovere il robot">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z" /></svg>Simula
+        </button>
+        <button id="download" class="button button-secondary" disabled title="Sostituisce il programma salvato sul robot; richiede una connessione">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5" /></svg>Scarica sul robot
+        </button>
+      </div>
+    </nav>
+
+    <main class="workspace">
+      <section class="panel editor-panel" aria-labelledby="editor-title">
+        <div class="panel-header">
+          <div><span class="eyebrow">CODICE SORGENTE</span><h2 id="editor-title">Editor</h2></div>
+          <span id="editor-state" class="badge" data-state="idle">Da verificare</span>
+        </div>
+        <div class="editor">
+          <pre id="line-numbers" aria-hidden="true">1</pre>
+          <div class="editor-content">
+            <pre id="hl" aria-hidden="true"></pre>
+            <textarea id="code" aria-label="Codice sorgente BASIC" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off"></textarea>
+          </div>
+        </div>
+        <div class="editor-footer"><span id="editor-lines">1 riga</span><span id="source-state" role="status">Non salvato</span><span id="cursor-position">Riga 1, colonna 1</span></div>
+      </section>
+
+      <section class="panel robot-panel" id="robot-view" aria-labelledby="robot-title">
+        <div class="panel-header">
+          <div><span class="eyebrow">ANTEPRIMA E CONTROLLO</span><h2 id="robot-title">Il tuo robot</h2></div>
+          <span id="robot-mode" class="badge" data-state="idle">Locale</span>
+        </div>
+        <div class="robot-toolbar">
+          <label for="robot">Modello</label>
+          <select id="robot"><option value="robonova">Robonova</option><option value="roki">Roki</option></select>
+          <span id="motor-count" class="muted"></span>
+        </div>
+        <div class="view-tabs" role="tablist" aria-label="Vista dei servo">
+          <button id="view-diagram" role="tab" aria-selected="true" aria-controls="diagram-view">Diagramma</button>
+          <button id="view-motors" role="tab" aria-selected="false" aria-controls="motor-list" tabindex="-1">Elenco servo</button>
+        </div>
+        <div class="robot-content">
+          <div id="diagram-view" role="tabpanel" aria-labelledby="view-diagram"><div class="stage-wrap" id="stage-frame"><div id="stage"></div></div></div>
+          <div id="motor-list" role="tabpanel" aria-labelledby="view-motors" hidden></div>
+        </div>
+        <div class="robot-footer">
+          <strong id="servo-info">Seleziona un servo per vedere la posizione</strong>
+          <p id="robot-hint">Modalit&agrave; locale: gli slider non muovono il robot.</p>
+        </div>
+      </section>
+
+      <aside class="panel activity-panel" aria-labelledby="activity-title">
+        <div class="panel-header">
+          <div><span class="eyebrow">RISULTATI E RIFERIMENTI</span><h2 id="activity-title">Attivit&agrave;</h2></div>
+          <span class="badge">MR-C3024</span>
+        </div>
+        <div class="view-tabs" role="tablist" aria-label="Pannello attivit&agrave;">
+          <button id="tab-console" role="tab" aria-selected="true" aria-controls="console">Console</button>
+          <button id="tab-help" role="tab" aria-selected="false" aria-controls="help" tabindex="-1">Guida comandi</button>
+        </div>
+        <div class="console-toolbar" id="console-toolbar"><span>Messaggi recenti</span><button id="clear-console" class="text-button">Pulisci</button></div>
+        <div id="console-empty" class="empty-state"><span class="empty-symbol" aria-hidden="true">&gt;_</span><h3>Pronto a programmare</h3><p>Scrivi il codice, premi <strong>Verifica</strong> e poi <strong>Simula</strong>. Qui trovi risultati, avvisi ed errori.</p></div>
+        <div id="console" role="tabpanel" aria-labelledby="tab-console" aria-live="polite" aria-relevant="additions"></div>
+        <div id="help" role="tabpanel" aria-labelledby="tab-help" hidden>
+          <label class="help-search" for="help-q"><span>Cerca nella guida</span><input id="help-q" type="search" placeholder="Es. MOVE, DELAY, SERVO" /></label>
+          <div class="help-meta"><span id="help-count"></span><span>BASIC</span></div>
+          <ul id="help-list" aria-label="Comandi disponibili"></ul>
+          <p id="help-no-results" class="empty-hint" hidden>Nessun comando trovato. Prova un altro termine.</p>
+          <div class="help-detail"><h3 id="help-title">Scegli un comando</h3><article id="help-body"><p class="muted">Sintassi, descrizione ed esempi appariranno qui.</p></article></div>
         </div>
       </aside>
     </main>
+    <dialog id="recent-sources-dialog" aria-labelledby="recent-sources-title">
+      <h2 id="recent-sources-title">Sorgenti recenti</h2>
+      <p class="muted">Gli ultimi 20 file aperti o salvati, dal pi&ugrave; recente.</p>
+      <p id="recent-sources-empty" class="empty-hint">Nessun sorgente recente. Carica o salva un file per aggiungerlo qui.</p>
+      <ul id="recent-sources-list" aria-label="File sorgenti recenti"></ul>
+      <form method="dialog" class="dialog-actions"><button class="button button-secondary" autofocus>Chiudi</button></form>
+    </dialog>
+    <dialog id="unsaved-dialog" aria-labelledby="unsaved-title" aria-describedby="unsaved-description">
+      <form method="dialog">
+        <h2 id="unsaved-title">Salvare le modifiche?</h2>
+        <p id="unsaved-description">Il sorgente contiene modifiche non salvate. Salvalo prima di continuare oppure scarta le modifiche.</p>
+        <div class="dialog-actions">
+          <button class="button button-secondary" value="cancel" autofocus>Annulla</button>
+          <button class="button button-secondary" value="discard">Non salvare</button>
+          <button class="button button-primary" value="save">Salva</button>
+        </div>
+      </form>
+    </dialog>
+    <footer class="status-bar"><span id="link-status">Robot non connesso</span><span>MR-C3024 <span class="status-separator">/</span> <span id="task-status">Simulazione locale disponibile</span></span></footer>
   </body>
 </html>

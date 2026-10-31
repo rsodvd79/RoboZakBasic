@@ -1,0 +1,7 @@
+DIM A AS INTEGER
+DIM B AS BYTE
+A = 65535
+B = 1
+A = NOT(A)
+B = NOT(B)
+END

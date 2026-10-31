@@ -1,0 +1,1762 @@
+[
+    {
+        "name":  "acceldir",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "accelsense",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "accelset",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "accelset2",
+        "error":  999,
+        "line":  1
+    },
+    {
+        "name":  "action",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "action2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "action3",
+        "error":  42,
+        "line":  2
+    },
+    {
+        "name":  "ad",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ad1",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "add",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "aim1",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "aim2",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "aim3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "aimi2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "aimin",
+        "error":  999,
+        "line":  1
+    },
+    {
+        "name":  "aimo2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "aimoff",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "and",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "arrcount",
+        "error":  14,
+        "line":  1
+    },
+    {
+        "name":  "as1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "assign0",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "assign200",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "assign5",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "assignB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "asw",
+        "error":  999,
+        "line":  1
+    },
+    {
+        "name":  "asx",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "asy",
+        "error":  999,
+        "line":  1
+    },
+    {
+        "name":  "asz",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "auto1",
+        "error":  999,
+        "line":  1
+    },
+    {
+        "name":  "beep0",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "beep1",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "beep2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "beep3",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "beepvar",
+        "error":  23,
+        "line":  2
+    },
+    {
+        "name":  "break",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "bytein",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "byteout",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "cls",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "constv",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "cont",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "csoff",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "cson",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "delay1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "delay100",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "delay200",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "delay255",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "delay256",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "delay65535",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "delayvar",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dimA",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dimAB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dimconst",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dimInt",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dir",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dir8",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dirB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dirC",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dirD",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "dirG8B",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "div",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "empty",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "end2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "erx1",
+        "error":  40,
+        "line":  2
+    },
+    {
+        "name":  "erx2",
+        "error":  23,
+        "line":  2
+    },
+    {
+        "name":  "erx3",
+        "error":  25,
+        "line":  2
+    },
+    {
+        "name":  "erx4",
+        "error":  25,
+        "line":  2
+    },
+    {
+        "name":  "erx5",
+        "error":  23,
+        "line":  2
+    },
+    {
+        "name":  "erxl1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "erxl2",
+        "error":  40,
+        "line":  2
+    },
+    {
+        "name":  "erxl3",
+        "error":  40,
+        "line":  2
+    },
+    {
+        "name":  "etx1",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etx2",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "etx3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etx4",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etxb0",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb1",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb10",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb115200",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etxb19200",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etxb2",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb2400",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etxb3",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb38400",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etxb4",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb4800",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etxb5",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb57600",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "etxb6",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb7",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb8",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb9",
+        "error":  40,
+        "line":  1
+    },
+    {
+        "name":  "etxb9600",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "fornext",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "fornoname",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "fpwm1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "fpwm2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "func",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "func2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "getmotorset",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "getmotorsetB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "gosub",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "gosub2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "goto",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "goto2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "gyrodir",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "gyrosense",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "gyroset",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "gyroset2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "highspeed",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "highspeedoff",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifand",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifblock",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifelse",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifelseif",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifeq",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifge",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifinline",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifle",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "iflt",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifne",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifor",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifthen",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ifthen2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "in0",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "in5",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "init1",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "init2",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "inout",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "int1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "int1b",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "int300",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "intB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "keyin1",
+        "error":  19,
+        "line":  2
+    },
+    {
+        "name":  "keyin2",
+        "error":  19,
+        "line":  2
+    },
+    {
+        "name":  "labelfwd",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lcdinit",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_lab255",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_lab256",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_lab300",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_undecl",
+        "error":  17,
+        "line":  1
+    },
+    {
+        "name":  "lim_v100",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_v128",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_v192",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_v193",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_v193b",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_v200",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_v256",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "lim_v257",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "locate",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_aimotor_all",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_aimotor_groups",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_aimotor_invalid_mode",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "manual_aimotor_modes",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_bit_range",
+        "error":  36,
+        "line":  2
+    },
+    {
+        "name":  "manual_bits",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_char",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_format_range",
+        "error":  41,
+        "line":  2
+    },
+    {
+        "name":  "manual_format_sequence",
+        "error":  23,
+        "line":  2
+    },
+    {
+        "name":  "manual_format_width",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_formats",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_init",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_init_explicit_zero",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "manual_init_range",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "manual_keyin",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_literal_bases",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_modulo",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_motor_all",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_not",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_pos_inline",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_pos_range",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "manual_pose_expanded",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_pose_if_expanded",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_print_codes",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_print_zero",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "manual_pulse",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_run",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_serial_rates",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_zero",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "manual_zero_explicit_zero",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "manual_zero_high",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "manual_zero_low",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "mod",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motor0",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motorG6A",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motorG6B",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motorG6C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motorG6D",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motorG8A",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motorG8B",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motorin",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motoroff",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "motoroff0",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move12",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move16",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move24",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move2m",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move32",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move6d",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move6e",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move8",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "move8d",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "moveB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "moveC",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "moveD",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "movepos1",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "movepos2",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "moveSkip",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mul",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mus",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mus2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mus3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mus4",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mus5",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mus6",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "mus7",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "mus8",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mus9",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "musa",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "musb",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "musc",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "musd",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "muse",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "musf",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "musg",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mush",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "musi",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "mz_x60C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mz_x62C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzA",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC_x35",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC_x43",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC_x45",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC_x46",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "mzC_x60",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC_x62",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC3C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC4",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC5",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC6",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC7",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzC8",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzCD",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzCDEFGAB",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzD_x35",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzF",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzG",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzH",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzL16C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzL1C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzL2C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzL3C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzL8C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO1C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO2D",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO3C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO3CDE",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO3D",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO3E",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO4CDE",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO4F",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzO5C",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzP1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "mzR1",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "mzT4C",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "mzV1C",
+        "error":  47,
+        "line":  1
+    },
+    {
+        "name":  "not1",
+        "error":  19,
+        "line":  2
+    },
+    {
+        "name":  "not2",
+        "error":  19,
+        "line":  2
+    },
+    {
+        "name":  "num0",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "num127",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "num128",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "num15",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "num16",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "num2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "num254",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "num3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "offset1",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "offset2",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "ongoto",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "or",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "out",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "out0",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "outvar",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "peek",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "poke",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "pos1",
+        "error":  19,
+        "line":  2
+    },
+    {
+        "name":  "prec",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "prec2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "print",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ptpall",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ptpalloff",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ptpoff",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ptpon",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "pwm1",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "pwm2",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "pwm3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "pwm4",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "rcin",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rcin1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rcin2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rcin3",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rcin4",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rem",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "remocon",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rnd",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rompeek",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "rompoke",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "servo",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "servo0_150",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "servo1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "servovar",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "shl",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "shr",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "sonar",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "speed1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "speed10",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "speed5",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "speedvar",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "state1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "step1",
+        "error":  23,
+        "line":  1
+    },
+    {
+        "name":  "step2",
+        "error":  23,
+        "line":  2
+    },
+    {
+        "name":  "step3",
+        "error":  23,
+        "line":  2
+    },
+    {
+        "name":  "step4",
+        "error":  23,
+        "line":  2
+    },
+    {
+        "name":  "step5",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "stop",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "sub",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "td1",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "tempo",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "tiltdir",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "tiltsense",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "tiltset",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "tiltset2",
+        "error":  999,
+        "line":  1
+    },
+    {
+        "name":  "toggle",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "ts1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "tsx",
+        "error":  999,
+        "line":  1
+    },
+    {
+        "name":  "varA1",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "varC",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "varint2",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "varlong",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "varZ",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "wait",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "xor",
+        "error":  0,
+        "line":  0
+    },
+    {
+        "name":  "zero1",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "zero2",
+        "error":  41,
+        "line":  1
+    },
+    {
+        "name":  "zero3",
+        "error":  41,
+        "line":  1
+    }
+]

@@ -18,7 +18,7 @@ pub struct CompileError {
 type Res<T> = Result<T, CompileError>;
 
 #[derive(Debug, Clone, PartialEq)]
-enum Tok {
+pub(crate) enum Tok {
     Id(String),
     Num(i64),
     Str(String),
@@ -82,7 +82,7 @@ impl Cur {
     }
 }
 
-fn lex(line: &str) -> Vec<Tok> {
+pub(crate) fn lex(line: &str) -> Vec<Tok> {
     let cs: Vec<char> = line.chars().collect();
     let mut i = 0;
     let mut out = Vec::new();
@@ -101,6 +101,22 @@ fn lex(line: &str) -> Vec<Tok> {
             }
             i += 1;
             out.push(Tok::Str(s));
+        } else if c == '&'
+            && i + 1 < cs.len()
+            && matches!(cs[i + 1].to_ascii_uppercase(), 'H' | 'B' | 'O')
+        {
+            let radix = match cs[i + 1].to_ascii_uppercase() {
+                'H' => 16,
+                'B' => 2,
+                _ => 8,
+            };
+            i += 2;
+            let st = i;
+            while i < cs.len() && cs[i].is_ascii_alphanumeric() {
+                i += 1;
+            }
+            let s: String = cs[st..i].iter().collect();
+            out.push(Tok::Num(i64::from_str_radix(&s, radix).unwrap_or(i64::MAX)));
         } else if c.is_ascii_digit() {
             let st = i;
             while i < cs.len() && cs[i].is_ascii_digit() {
@@ -129,7 +145,7 @@ fn lex(line: &str) -> Vec<Tok> {
     out
 }
 
-fn group(name: &str) -> Option<(u8, u8)> {
+pub(crate) fn group(name: &str) -> Option<(u8, u8)> {
     Some(match name {
         "G6A" => (0, 6),
         "G6B" => (6, 6),
@@ -154,7 +170,7 @@ fn binop(op: &str) -> Option<u8> {
         "-" => 0x22,
         "*" => 0x23,
         "/" => 0x24,
-        "MOD" => 0x26,
+        "MOD" | "%" => 0x26,
         "AND" => 0x27,
         "OR" => 0x28,
         "XOR" => 0x2A,
@@ -170,10 +186,12 @@ fn binop(op: &str) -> Option<u8> {
     })
 }
 
-fn func_code(name: &str) -> Option<(u8, bool)> {
+pub(crate) fn func_code(name: &str) -> Option<(u8, bool)> {
     Some(match name {
         "RND" => (0xF8, false),
         "IN" => (0xF0, true),
+        "KEYIN" => (0xF1, true),
+        "NOT" => (0xEF, true),
         "BYTEIN" => (0xF2, true),
         "AD" => (0xF3, true),
         "PEEK" => (0xF9, true),
@@ -185,6 +203,101 @@ fn func_code(name: &str) -> Option<(u8, bool)> {
         "AIMOTORIN" => (0xFC, true),
         _ => return None,
     })
+}
+
+// L'OCX attuale rifiuta MOVEPOS: abbassarlo a MOVE usa solo bytecode verificato.
+pub(crate) fn expand_poses(src: &str) -> Res<Vec<(usize, Vec<Tok>)>> {
+    let mut lines = Vec::new();
+    for (i, raw) in src.lines().enumerate() {
+        let toks = lex(raw);
+        if toks.len() > 2
+            && matches!(&toks[0], Tok::Id(_))
+            && toks[1] == Tok::Op(":".into())
+            && toks[2] == Tok::Id("POS".into())
+        {
+            lines.push((i + 1, toks[..2].to_vec()));
+            lines.push((i + 1, toks[2..].to_vec()));
+        } else if !toks.is_empty() {
+            lines.push((i + 1, toks));
+        }
+    }
+    let mut poses: HashMap<String, Vec<Vec<Tok>>> = HashMap::new();
+    let mut labels = Vec::new();
+    let mut after_pos = false;
+    for (_, toks) in &lines {
+        if toks.first() == Some(&Tok::Id("REMARK".into()))
+            && !matches!(toks.get(1), Some(Tok::Op(op)) if op == "=" || op == ".")
+        {
+            continue;
+        }
+        if let [Tok::Id(label), Tok::Op(colon)] = toks.as_slice()
+            && colon == ":"
+        {
+            if after_pos {
+                labels.clear();
+            }
+            labels.push(label.clone());
+            after_pos = false;
+            continue;
+        }
+        if toks.first() == Some(&Tok::Id("POS".into())) && matches!(toks.get(1), Some(Tok::Id(_))) {
+            for label in &labels {
+                poses.entry(label.clone()).or_default().push(toks.clone());
+            }
+            after_pos = true;
+        } else {
+            labels.clear();
+            after_pos = false;
+        }
+    }
+    let mut expanded = Vec::new();
+    for (line, toks) in lines {
+        let move_at = if toks.first() == Some(&Tok::Id("MOVEPOS".into())) {
+            Some(0)
+        } else if toks.first() == Some(&Tok::Id("IF".into())) {
+            toks.windows(2)
+                .rposition(|pair| pair == [Tok::Id("THEN".into()), Tok::Id("MOVEPOS".into())])
+                .map(|at| at + 1)
+        } else {
+            None
+        }.filter(|at| !matches!(toks.get(at + 1), Some(Tok::Op(op)) if ["=", ".", ":"].contains(&op.as_str())));
+        if let Some(move_at) = move_at {
+            let pose = match &toks[move_at..] {
+                [_, Tok::Id(label)] => poses.get(label),
+                _ => None,
+            };
+            let Some(pose) = pose else {
+                return Err(CompileError {
+                    line,
+                    msg: "MOVEPOS richiede un'etichetta che definisce una posa POS".into(),
+                    unsupported: false,
+                });
+            };
+            let mut start = 0;
+            let mut conditions = 0;
+            while start < move_at {
+                let then = toks[start..move_at]
+                    .iter()
+                    .position(|tok| tok == &Tok::Id("THEN".into()))
+                    .unwrap()
+                    + start;
+                expanded.push((line, toks[start..=then].to_vec()));
+                conditions += 1;
+                start = then + 1;
+            }
+            for block in pose {
+                let mut movement = block.clone();
+                movement[0] = Tok::Id("MOVE".into());
+                expanded.push((line, movement));
+            }
+            for _ in 0..conditions {
+                expanded.push((line, vec![Tok::Id("ENDIF".into())]));
+            }
+        } else {
+            expanded.push((line, toks));
+        }
+    }
+    Ok(expanded)
 }
 
 struct Compiler {
@@ -201,10 +314,18 @@ struct Compiler {
 
 impl Compiler {
     fn err<T>(&self, msg: &str) -> Res<T> {
-        Err(CompileError { line: self.line, msg: msg.to_string(), unsupported: false })
+        Err(CompileError {
+            line: self.line,
+            msg: msg.to_string(),
+            unsupported: false,
+        })
     }
     fn unsupported<T>(&self, what: &str) -> Res<T> {
-        Err(CompileError { line: self.line, msg: format!("{what}: non supportato"), unsupported: true })
+        Err(CompileError {
+            line: self.line,
+            msg: format!("{what}: non supportato"),
+            unsupported: true,
+        })
     }
 
     fn here(&self) -> u16 {
@@ -270,7 +391,27 @@ impl Compiler {
     }
 
     fn put_var(&mut self, v: Var) {
-        self.out.extend_from_slice(&[if v.int { 0x16 } else { 0x15 }, v.addr]);
+        self.out
+            .extend_from_slice(&[if v.int { 0x16 } else { 0x15 }, v.addr]);
+    }
+
+    fn put_reference(&mut self, c: &mut Cur, v: Var) -> Res<()> {
+        if c.eat_op(".") {
+            let Some(bit @ 0..=15) = self.const_num(c)? else {
+                return self.err("Indicatore di bit fuori intervallo");
+            };
+            if !v.int && bit > 7 {
+                return self.err("Indicatore di bit BYTE fuori intervallo (0-7)");
+            }
+            self.out.extend_from_slice(&[
+                0x1B,
+                v.addr.wrapping_add((bit / 8) as u8),
+                1 << (bit % 8),
+            ]);
+        } else {
+            self.put_var(v);
+        }
+        Ok(())
     }
 
     fn operand(&mut self, c: &mut Cur) -> Res<()> {
@@ -300,6 +441,10 @@ impl Compiler {
                             return self.err("형식이 맞지 않습니다.");
                         }
                         self.operand(c)?;
+                        if s == "KEYIN" {
+                            self.comma(c)?;
+                            self.operand(c)?;
+                        }
                         if !c.eat_op(")") {
                             return self.err("형식이 맞지 않습니다.");
                         }
@@ -310,9 +455,9 @@ impl Compiler {
                 if c.is_op("(") {
                     return self.unsupported("array");
                 }
-                self.put_var(v);
-                Ok(())
+                self.put_reference(c, v)
             }
+            Some(Tok::Str(s)) if s.is_ascii() && !s.is_empty() => self.num(s.as_bytes()[0] as i64),
             _ => self.err("형식이 맞지 않습니다."),
         }
     }
@@ -335,7 +480,11 @@ impl Compiler {
     }
 
     fn comma(&self, c: &mut Cur) -> Res<()> {
-        if c.eat_op(",") { Ok(()) } else { self.err("형식이 맞지 않습니다.") }
+        if c.eat_op(",") {
+            Ok(())
+        } else {
+            self.err("형식이 맞지 않습니다.")
+        }
     }
 
     fn ops(&mut self, c: &mut Cur, n: usize) -> Res<()> {
@@ -367,6 +516,15 @@ impl Compiler {
     }
 
     fn values(&self, c: &mut Cur, count: usize) -> Res<Vec<u8>> {
+        self.values_range(c, count, 0..=255)
+    }
+
+    fn values_range(
+        &self,
+        c: &mut Cur,
+        count: usize,
+        range: std::ops::RangeInclusive<i64>,
+    ) -> Res<Vec<u8>> {
         let mut v = vec![0u8; count];
         for slot in v.iter_mut() {
             if c.done() {
@@ -374,7 +532,7 @@ impl Compiler {
             }
             if !c.is_op(",") {
                 match self.const_num(c)? {
-                    Some(n) if (0..=255).contains(&n) => *slot = n as u8,
+                    Some(n) if range.contains(&n) => *slot = n as u8,
                     Some(_) => return self.err("범위 초과"),
                     None => return self.err("[MOVE(동작)] 숫자 또는 상수만 사용할 수 있습니다."),
                 }
@@ -391,7 +549,19 @@ impl Compiler {
 
     fn motor_cmd(&mut self, c: &mut Cur, opcode: u8) -> Res<()> {
         if let Some(Tok::Id(s)) = c.peek() {
-            if let Some((start, count)) = group(s) {
+            if let Some((start, count)) = group(s).or_else(|| {
+                let mode = if matches!(opcode, 0xDB | 0xB8) {
+                    "ALLOFF"
+                } else {
+                    "ALLON"
+                };
+                let count = if matches!(opcode, 0xB7 | 0xB8) {
+                    31
+                } else {
+                    32
+                };
+                (s == mode).then_some((0, count))
+            }) {
                 c.pos += 1;
                 for m in start..start + count {
                     self.out.push(opcode);
@@ -411,11 +581,13 @@ impl Compiler {
         let Some(Tok::Id(kw)) = c.next() else {
             return self.err("구문처리 에러가 발생했습니다.");
         };
-        if c.is_op("=") {
+        if c.is_op("=") || c.is_op(".") {
             let v = self.var(&kw)?;
-            c.pos += 1;
             self.out.push(0xD0);
-            self.put_var(v);
+            self.put_reference(c, v)?;
+            if !c.eat_op("=") {
+                return self.err("형식이 맞지 않습니다.");
+            }
             return self.expr(c);
         }
         match kw.as_str() {
@@ -473,7 +645,13 @@ impl Compiler {
                 if self.next_var + size > 0x100 {
                     return self.err("변수 영역 초과");
                 }
-                self.vars.insert(name, Var { int, addr: self.next_var as u8 });
+                self.vars.insert(
+                    name,
+                    Var {
+                        int,
+                        addr: self.next_var as u8,
+                    },
+                );
                 self.next_var += size;
             }
             "CONST" => {
@@ -511,6 +689,10 @@ impl Compiler {
                 self.out.push(0xD3);
                 self.operand(c)?;
             }
+            "PULSE" => {
+                self.out.push(0xD2);
+                self.operand(c)?;
+            }
             "BYTEOUT" => {
                 self.out.push(0xE7);
                 self.ops(c, 2)?;
@@ -537,23 +719,32 @@ impl Compiler {
             "CSOFF" => self.out.push(0xE5),
             "WAIT" => self.out.push(0xE9),
             "STOP" => self.out.extend_from_slice(&[0xEA, 0xE9]),
-            "PRINT" => match c.next() {
-                Some(Tok::Str(s)) if s.is_ascii() => {
-                    self.out.extend_from_slice(&[0xE3, 0x18]);
-                    self.out.extend_from_slice(s.as_bytes());
-                    self.out.push(0x00);
-                }
-                _ => return self.unsupported("PRINT con espressioni"),
-            },
+            "RUN" => self.out.push(0xEB),
+            "PRINT" => self.print(c)?,
             "MOTOR" => self.motor_cmd(c, 0xDA)?,
             "MOTOROFF" => self.motor_cmd(c, 0xDB)?,
-            "MOVE" | "MOVE24" => {
-                let (start, count) = if kw == "MOVE24" { (0, 24) } else { self.group_arg(c)? };
-                if kw == "MOVE" {
+            "MOVE" | "MOVE24" | "POS" | "ZERO" | "INIT" => {
+                let (start, count) = if kw == "MOVE24" {
+                    (0, 24)
+                } else {
+                    self.group_arg(c)?
+                };
+                if kw != "MOVE24" {
                     self.comma(c)?;
                 }
-                let vals = self.values(c, count as usize)?;
-                self.out.extend_from_slice(&[0xB0, start, count]);
+                let vals = if matches!(kw.as_str(), "POS" | "ZERO" | "INIT") {
+                    let range = if kw == "ZERO" { 80..=120 } else { 10..=190 };
+                    self.values_range(c, count as usize, range)?
+                } else {
+                    self.values(c, count as usize)?
+                };
+                let opcode = match kw.as_str() {
+                    "POS" => 0xB1,
+                    "ZERO" => 0xB3,
+                    "INIT" => 0xB5,
+                    _ => 0xB0,
+                };
+                self.out.extend_from_slice(&[opcode, start, count]);
                 self.out.extend_from_slice(&vals);
             }
             "DIR" => {
@@ -563,7 +754,10 @@ impl Compiler {
                 }
                 self.comma(c)?;
                 let vals = self.values(c, count as usize)?;
-                let mask = vals.iter().enumerate().fold(0u8, |m, (i, v)| m | ((*v & 1) << i));
+                let mask = vals
+                    .iter()
+                    .enumerate()
+                    .fold(0u8, |m, (i, v)| m | ((*v & 1) << i));
                 self.out.extend_from_slice(&[0xB4, start, count, mask]);
             }
             "GETMOTORSET" => {
@@ -610,7 +804,11 @@ impl Compiler {
                 if c.is_id("STEP") {
                     return self.err("[FOR(반복)] 명령어의 형식이 맞지 않습니다.");
                 }
-                self.fors.push(ForFrame { var: v, check_addr, exit_fix });
+                self.fors.push(ForFrame {
+                    var: v,
+                    check_addr,
+                    exit_fix,
+                });
             }
             "NEXT" => {
                 let Some(f) = self.fors.pop() else {
@@ -642,12 +840,24 @@ impl Compiler {
                 self.ops(c, 2)?;
             }
             "AIMOTOR" => {
-                self.out.push(0xB7);
-                self.operand(c)?;
+                let mode = match c.peek() {
+                    Some(Tok::Id(s)) => match s.as_str() {
+                        "SETOFF" => Some(2),
+                        "SETON" => Some(3),
+                        "INIT" => Some(4),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                if let Some(mode) = mode {
+                    c.pos += 1;
+                    self.out.extend_from_slice(&[0xB6, mode]);
+                } else {
+                    self.motor_cmd(c, 0xB7)?;
+                }
             }
             "AIMOTOROFF" => {
-                self.out.push(0xB8);
-                self.operand(c)?;
+                self.motor_cmd(c, 0xB8)?;
             }
             "FUNC" => match self.const_num(c)? {
                 Some(n @ 0..=255) => self.out.extend_from_slice(&[0xB6, n as u8]),
@@ -697,7 +907,11 @@ impl Compiler {
                     }
                     i += 1;
                 }
-                self.out.extend_from_slice(&[if kw == "ACCELSET" { 0xA0 } else { 0xA9 }, 0x00, 0x20]);
+                self.out.extend_from_slice(&[
+                    if kw == "ACCELSET" { 0xA0 } else { 0xA9 },
+                    0x00,
+                    0x20,
+                ]);
                 self.out.extend_from_slice(&vals);
             }
             "ETX" | "ERX" => {
@@ -705,10 +919,14 @@ impl Compiler {
                     Some(2400) => 0,
                     Some(4800) => 1,
                     Some(9600) => 2,
+                    Some(14400) => 3,
                     Some(19200) => 4,
+                    Some(28800) => 5,
                     Some(38400) => 6,
                     Some(57600) => 7,
+                    Some(76800) => 8,
                     Some(115200) => 9,
+                    Some(230400) => 10,
                     _ => return self.err("형식이 올바르지 않습니다."),
                 };
                 self.comma(c)?;
@@ -723,7 +941,8 @@ impl Compiler {
                     self.comma(c)?;
                     let l = self.label_name(c)?;
                     self.out.extend_from_slice(&[0xD5, baud]);
-                    self.out.extend_from_slice(&[if v.int { 0x16 } else { 0x15 }, v.addr]);
+                    self.out
+                        .extend_from_slice(&[if v.int { 0x16 } else { 0x15 }, v.addr]);
                     self.jump_label(&l);
                 }
             }
@@ -744,7 +963,11 @@ impl Compiler {
                     return self.err("[IF] 형식이 맞지 않습니다.");
                 }
                 let inline = !c.done();
-                self.ifs.push(IfFrame { false_fix: Some(false_fix), end_fixes: vec![], inline });
+                self.ifs.push(IfFrame {
+                    false_fix: Some(false_fix),
+                    end_fixes: vec![],
+                    inline,
+                });
                 if inline {
                     self.statement(c)?;
                     if !c.done() {
@@ -791,9 +1014,69 @@ impl Compiler {
         Ok(())
     }
 
+    fn print(&mut self, c: &mut Cur) -> Res<()> {
+        self.out.push(0xE3);
+        if c.eat_id("FORMAT") {
+            if !c.eat_op("(") {
+                return self.err("형식이 맞지 않습니다.");
+            }
+            let name = self.label_name(c)?;
+            let v = self.var(&name)?;
+            self.comma(c)?;
+            let mode = self.label_name(c)?;
+            let (tag, default) = match (mode.as_str(), v.int) {
+                ("HEX", false) => (0x19, 2),
+                ("HEX", true) => (0x19, 4),
+                ("DEC", false) => (0x1A, 3),
+                ("DEC", true) => (0x1A, 5),
+                ("BIN", false) => (0x1B, 8),
+                ("BIN", true) => (0x1B, 16),
+                _ => return self.err("Formato PRINT non valido"),
+            };
+            let width = if c.eat_op(",") {
+                match self.const_num(c)? {
+                    Some(n @ 1..=255) => n as u8,
+                    _ => return self.err("numero fuori intervallo"),
+                }
+            } else {
+                default
+            };
+            if !c.eat_op(")") {
+                return self.err("형식이 맞지 않습니다.");
+            }
+            self.out.push(tag);
+            self.put_var(v);
+            self.out.push(width);
+            return Ok(());
+        }
+        self.out.push(0x18);
+        loop {
+            match c.peek() {
+                Some(Tok::Str(s)) if s.is_ascii() => {
+                    self.out.extend_from_slice(s.as_bytes());
+                    c.pos += 1;
+                }
+                _ => match self.const_num(c)? {
+                    Some(n @ 1..=255) => self.out.push(n as u8),
+                    Some(_) => return self.err("numero fuori intervallo"),
+                    None => return self.err("PRINT richiede caratteri o FORMAT"),
+                },
+            }
+            if !c.eat_op(",") {
+                break;
+            }
+        }
+        self.out.push(0);
+        Ok(())
+    }
+
     // Coppie (durata, nota) terminate da 0. Durata = 96/n (default 4), ottava 3 = C 0x24.
     fn music(&mut self, s: &str) -> Res<()> {
-        let bad = || CompileError { line: self.line, msg: "연주 문자열이 잘못되었습니다.".into(), unsupported: false };
+        let bad = || CompileError {
+            line: self.line,
+            msg: "연주 문자열이 잘못되었습니다.".into(),
+            unsupported: false,
+        };
         let (mut octave, mut default_len) = (3i32, 24i32);
         let (mut pending_len, mut sharp) = (None::<i32>, 0i32);
         let b = s.to_ascii_uppercase().into_bytes();
@@ -810,11 +1093,25 @@ impl Compiler {
             let ch = b[i];
             i += 1;
             match ch {
-                b'O' => octave = number(&mut i).filter(|o| (1..=7).contains(o)).ok_or_else(bad)?,
-                b'L' => { default_len = 96 / number(&mut i).filter(|n| (1..=96).contains(n)).ok_or_else(bad)?; octave = 2; }
+                b'O' => {
+                    octave = number(&mut i)
+                        .filter(|o| (1..=7).contains(o))
+                        .ok_or_else(bad)?
+                }
+                b'L' => {
+                    default_len = 96
+                        / number(&mut i)
+                            .filter(|n| (1..=96).contains(n))
+                            .ok_or_else(bad)?;
+                    octave = 2;
+                }
                 b'0'..=b'9' => {
                     i -= 1;
-                    pending_len = Some(96 / number(&mut i).filter(|n| (1..=96).contains(n)).ok_or_else(bad)?);
+                    pending_len = Some(
+                        96 / number(&mut i)
+                            .filter(|n| (1..=96).contains(n))
+                            .ok_or_else(bad)?,
+                    );
                 }
                 b'>' => octave += 1,
                 b'<' => octave -= 1,
@@ -888,12 +1185,8 @@ fn compile_inner(src: &str, name: &str, stamp: [u8; 6]) -> Res<Vec<u8>> {
         ifs: Vec::new(),
         fors: Vec::new(),
     };
-    for (i, raw) in src.lines().enumerate() {
-        c.line = i + 1;
-        let toks = lex(raw);
-        if toks.is_empty() {
-            continue;
-        }
+    for (line, toks) in expand_poses(src)? {
+        c.line = line;
         if toks.len() == 2 && matches!(toks[1], Tok::Op(ref o) if o == ":") {
             if let Tok::Id(l) = &toks[0] {
                 let h = c.here();
@@ -920,7 +1213,11 @@ fn compile_inner(src: &str, name: &str, stamp: [u8; 6]) -> Res<Vec<u8>> {
     c.put_addr(h);
     for (at, label, line) in std::mem::take(&mut c.fixups) {
         let Some(a) = c.labels.get(&label) else {
-            return Err(CompileError { line, msg: format!("레이블 {label} 없음"), unsupported: false });
+            return Err(CompileError {
+                line,
+                msg: format!("레이블 {label} 없음"),
+                unsupported: false,
+            });
         };
         let b = a.to_le_bytes();
         c.out[at] = b[0];
@@ -949,6 +1246,43 @@ mod tests {
     // Confronta con l'output del compilatore originale, ignorando il timestamp (byte 9..15).
     #[test]
     fn matches_original_compiler() {
+        #[derive(serde::Deserialize)]
+        struct Expected {
+            name: String,
+            error: usize,
+            line: usize,
+        }
+        let inventory: Vec<Expected> = serde_json::from_str(
+            &std::fs::read_to_string(samples().join("expectations.json")).unwrap(),
+        )
+        .unwrap();
+        let expected_names: std::collections::HashSet<_> =
+            inventory.iter().map(|e| e.name.clone()).collect();
+        let actual_names: std::collections::HashSet<_> = std::fs::read_dir(samples())
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.extension().and_then(|x| x.to_str()) == Some("bas"))
+            .map(|p| p.file_stem().unwrap().to_string_lossy().to_string())
+            .collect();
+        assert_eq!(
+            expected_names, actual_names,
+            "Inventario dei campioni modificato"
+        );
+        assert_eq!(expected_names.len(), inventory.len(), "Campioni duplicati");
+        for e in &inventory {
+            let p = samples().join(format!("{}.bas", e.name));
+            assert_eq!(
+                p.with_extension("hex").exists(),
+                e.error == 0,
+                "{}: esito originale incoerente",
+                e.name
+            );
+            if e.error != 0 {
+                let got = compile(&std::fs::read_to_string(p).unwrap(), "        ", [0; 6])
+                    .expect_err(&format!("{} accettato ma rifiutato dall'originale", e.name));
+                assert_eq!(got.line, e.line, "{}: riga errore diversa", e.name);
+            }
+        }
         let mut checked = 0;
         let mut skipped = Vec::new();
         let mut bad = Vec::new();
@@ -986,7 +1320,9 @@ mod tests {
         let mut accepted = Vec::new();
         for e in std::fs::read_dir(samples()).unwrap().flatten() {
             let p = e.path();
-            if p.extension().and_then(|x| x.to_str()) == Some("bas") && !p.with_extension("hex").exists() {
+            if p.extension().and_then(|x| x.to_str()) == Some("bas")
+                && !p.with_extension("hex").exists()
+            {
                 let src = std::fs::read_to_string(&p).unwrap();
                 if compile(&src, "        ", [0; 6]).is_ok() {
                     accepted.push(p.file_stem().unwrap().to_string_lossy().to_string());
@@ -995,7 +1331,12 @@ mod tests {
         }
         eprintln!("accettati ma rifiutati dall'originale: {accepted:?}");
         assert!(bad.is_empty(), "{} diversi:\n{}", bad.len(), bad.join("\n"));
-        assert!(checked >= 80, "verificati solo {checked}; non supportati: {skipped:?}");
+        assert!(
+            accepted.is_empty(),
+            "accettati ma rifiutati dall'originale: {accepted:?}"
+        );
+        assert!(skipped.is_empty(), "campioni non supportati: {skipped:?}");
+        assert_eq!(checked, inventory.iter().filter(|e| e.error == 0).count());
     }
 
     #[test]
@@ -1003,7 +1344,10 @@ mod tests {
         let b = compile("END\r\n", "TEST", [26, 10, 26, 12, 36, 8]).unwrap();
         assert_eq!(
             b,
-            [0, b'T', b'E', b'S', b'T', 32, 32, 32, 32, 26, 10, 26, 12, 36, 8, 0x16, 0, 0xC4, 0x10, 0, 0xC4, 0x13, 0]
+            [
+                0, b'T', b'E', b'S', b'T', 32, 32, 32, 32, 26, 10, 26, 12, 36, 8, 0x16, 0, 0xC4,
+                0x10, 0, 0xC4, 0x13, 0
+            ]
         );
     }
 
@@ -1011,5 +1355,45 @@ mod tests {
     fn undefined_label_is_error() {
         assert!(compile("GOTO X\r\n", "", [0; 6]).is_err());
     }
-}
 
+    #[test]
+    fn movepos_lowers_to_original_move_bytecode() {
+        for (fixture, src) in [
+            (
+                "manual_pose_expanded",
+                "MOVEPOS P1\nEND\nP1: POS G6A,100,,120\nPOS G6B,90,100,110\n",
+            ),
+            (
+                "manual_pose_if_expanded",
+                "DIM A AS BYTE\nA=1\nIF A=1 THEN MOVEPOS P1\nEND\nP1: POS G6A,100,,120\nPOS G6B,90,100,110\n",
+            ),
+        ] {
+            let canonical =
+                std::fs::read_to_string(samples().join(format!("{fixture}.bas"))).unwrap();
+            assert_eq!(
+                compile(src, "POSE", [0; 6]).unwrap(),
+                compile(&canonical, "POSE", [0; 6]).unwrap()
+            );
+        }
+        for src in [
+            "MOVEPOS MISSING\nEND",
+            "MOVEPOS P1\nEND\nP1:\nDELAY 10",
+            "MOVEPOS P1\nEND\nP1: POS G6A,255",
+            "DIM POS AS BYTE\nDIM MOVE AS BYTE\nMOVEPOS P1\nEND\nP1: POS=1",
+        ] {
+            assert!(compile(src, "", [0; 6]).is_err());
+        }
+    }
+
+    #[test]
+    fn byte_bit_access_cannot_overwrite_the_next_variable() {
+        for src in [
+            "DIM A AS BYTE\nA.8 = 1",
+            "DIM A AS BYTE\nDIM B AS BYTE\nB = A.8",
+        ] {
+            let e = compile(src, "", [0; 6]).unwrap_err();
+            assert!(e.msg.contains("BYTE"));
+            assert_eq!(e.line, src.lines().count());
+        }
+    }
+}

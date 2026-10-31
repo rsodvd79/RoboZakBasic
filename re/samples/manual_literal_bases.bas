@@ -1,0 +1,3 @@
+DIM A AS BYTE
+A = &H3D + &B10 * &O3
+END
