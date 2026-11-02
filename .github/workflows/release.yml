@@ -14,10 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: Windows
+          - platform: windows
             runner: windows-latest
             build-args: --no-bundle --ci
-          - platform: macOS
+          - platform: macos
             runner: macos-latest
             build-args: --bundles app --ci
     runs-on: ${{ matrix.runner }}
@@ -50,7 +50,7 @@ jobs:
         id: package
         run: |
           $timestamp = [DateTime]::UtcNow.ToString('yyyy.MM.dd.HH.mm')
-          $name = "RoboZakBasic.$timestamp.zip"
+          $name = "RoboZakBasic.${{ matrix.platform }}.$timestamp.zip"
           $archive = Join-Path $env:RUNNER_TEMP $name
           if ($IsWindows) {
             Compress-Archive -LiteralPath '.\src-tauri\target\release\robozak.exe' -DestinationPath $archive

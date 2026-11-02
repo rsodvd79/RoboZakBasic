@@ -87,7 +87,7 @@ npm run tauri build    # pacchetto di rilascio
 
 ### Build automatiche
 
-Il workflow GitHub Actions `Build Release` compila in Release a ogni push; puo' essere avviato anche manualmente dalla scheda **Actions**. Gli artifact Windows e macOS contengono ciascuno uno ZIP `RoboZakBasic.yyyy.MM.dd.HH.mm.zip`, con timestamp UTC: eseguibile `.exe` per Windows e bundle `.app` per macOS (Apple Silicon, runner `macos-latest`). L'app macOS non e' firmata ne' notarizzata; Gatekeeper puo' impedirne l'apertura.
+Il workflow GitHub Actions `Build Release` compila in Release a ogni push di qualsiasi ramo; puo' essere avviato anche manualmente dalla scheda **Actions**. Gli artifact Windows e macOS contengono rispettivamente uno ZIP `RoboZakBasic.windows.yyyy.MM.dd.HH.mm.zip` e `RoboZakBasic.macos.yyyy.MM.dd.HH.mm.zip`, con timestamp UTC: eseguibile `.exe` per Windows e bundle `.app` per macOS (Apple Silicon, runner `macos-latest`). L'app macOS non e' firmata ne' notarizzata; Gatekeeper puo' impedirne l'apertura.
 
 Nell'app: scegli la porta, **Connetti** (identifica il controller a 9600 baud), poi **Scarica sul robot** oppure muovi gli slider. Il controllo live accetta motori 0-23 e posizioni 10-190; gli aggiornamenti sono serializzati e accorpati, e vengono sospesi durante il download.
 
