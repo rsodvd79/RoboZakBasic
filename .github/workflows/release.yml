@@ -2,14 +2,26 @@ name: Build Release
 
 on:
   push:
+    branches: ['**']
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  metadata:
+    name: Prepare release metadata
+    runs-on: ubuntu-latest
+    outputs:
+      timestamp: ${{ steps.metadata.outputs.timestamp }}
+    steps:
+      - name: Generate shared timestamp
+        id: metadata
+        run: echo "timestamp=$(date -u +'%Y.%m.%d.%H.%M')" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build ${{ matrix.platform }}
+    needs: metadata
     strategy:
       fail-fast: false
       matrix:
@@ -48,9 +60,10 @@ jobs:
 
       - name: Create ZIP
         id: package
+        env:
+          TIMESTAMP: ${{ needs.metadata.outputs.timestamp }}
         run: |
-          $timestamp = [DateTime]::UtcNow.ToString('yyyy.MM.dd.HH.mm')
-          $name = "RoboZakBasic.${{ matrix.platform }}.$timestamp.zip"
+          $name = "RoboZakBasic.${{ matrix.platform }}.$env:TIMESTAMP.zip"
           $archive = Join-Path $env:RUNNER_TEMP $name
           if ($IsWindows) {
             Compress-Archive -LiteralPath '.\src-tauri\target\release\robozak.exe' -DestinationPath $archive
@@ -65,7 +78,46 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: RoboZakBasic-${{ matrix.platform }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: RoboZakBasic-${{ matrix.platform }}-${{ github.run_id }}
           path: ${{ steps.package.outputs.path }}
           if-no-files-found: error
           compression-level: 0
+          overwrite: true
+
+  release:
+    name: Publish GitHub Release
+    needs: [metadata, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download ZIPs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: RoboZakBasic-*-${{ github.run_id }}
+          path: release
+          merge-multiple: true
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TIMESTAMP: ${{ needs.metadata.outputs.timestamp }}
+          TAG: build-${{ github.run_id }}-${{ github.run_attempt }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          shopt -s nullglob
+          archives=(release/*.zip)
+          if [[ ${#archives[@]} -ne 2 ]]; then
+            echo "::error::Expected exactly two release ZIPs"
+            exit 1
+          fi
+          for platform in windows macos; do
+            test -s "release/RoboZakBasic.$platform.$TIMESTAMP.zip"
+          done
+          printf 'Branch: %s\nCommit: %s\nBuild (UTC): %s\n' \
+            "$REF_NAME" "$GITHUB_SHA" "$TIMESTAMP" > release-notes.txt
+          gh release create "$TAG" "${archives[@]}" \
+            --target "$GITHUB_SHA" \
+            --title "RoboZakBasic $TIMESTAMP ($REF_NAME)" \
+            --notes-file release-notes.txt
